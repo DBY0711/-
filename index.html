@@ -58,6 +58,32 @@ tr:hover td { background:#fafcfd; }
 .sel { border:1px solid transparent; padding:3px; border-radius:3px; font:inherit; background:transparent; }
 .sel:hover { border-color:#ddd; }
 
+/* 工具栏 */
+.toolbar { display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+.toolbar input[type="text"] { padding:6px 12px; border:1px solid #ddd; border-radius:6px; font-size:0.8rem; width:200px; }
+.toolbar input[type="text"]:focus { border-color:#5b6abf; outline:none; }
+.toolbar select { padding:6px 10px; border:1px solid #ddd; border-radius:6px; font-size:0.8rem; background:#fff; cursor:pointer; }
+.toolbar .info { font-size:0.73rem; color:#888; margin-left:auto; white-space:nowrap; }
+.toolbar .cb { width:16px; height:16px; cursor:pointer; accent-color:#5b6abf; }
+th.sortable { cursor:pointer; user-select:none; }
+th.sortable:hover { color:#5b6abf; }
+th.sortable .arrow { font-size:0.6rem; margin-left:2px; }
+
+/* 弹窗 */
+.modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:500; justify-content:center; align-items:center; }
+.modal-bg.show { display:flex; }
+.modal-box { background:#fff; border-radius:12px; padding:24px; width:480px; max-height:80vh; overflow-y:auto; box-shadow:0 8px 30px rgba(0,0,0,0.15); }
+.modal-box h3 { font-size:1rem; margin-bottom:14px; }
+.modal-box .actions { display:flex; gap:6px; margin-bottom:10px; }
+.modal-box .pc-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #f5f5f5; font-size:0.82rem; }
+.modal-box .pc-row .n { color:#888; font-size:0.73rem; }
+
+/* 批量操作栏 */
+.batch-bar { display:none; position:sticky; bottom:0; background:#1a1d28; color:#fff; padding:10px 20px; border-radius:10px; margin-top:8px; align-items:center; gap:10px; }
+.batch-bar.show { display:flex; }
+.batch-bar select, .batch-bar input { padding:5px 10px; border-radius:5px; border:none; font-size:0.78rem; }
+.batch-bar .btn { background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.2); padding:5px 12px; font-size:0.75rem; }
+
 /* 提示 */
 .tooltip { position:fixed; z-index:999; background:#222; color:#fff; padding:10px 14px; border-radius:8px; font-size:0.8rem; pointer-events:none; opacity:0; transition:opacity 0.1s; }
 .tooltip.on { opacity:1; }
@@ -94,13 +120,62 @@ tr:hover td { background:#fafcfd; }
 
 <div class="card">
   <h2>📝 任务列表</h2>
+  <!-- 工具栏 -->
+  <div class="toolbar" id="toolbar">
+    <input type="text" id="fSearch" placeholder="🔍 搜索流程或电脑..." oninput="applyFilters()">
+    <select id="fPc" onchange="applyFilters()"><option value="">🖥 全部电脑</option></select>
+    <select id="fStatus" onchange="applyFilters()">
+      <option value="">📌 全部状态</option>
+      <option value="运行中">运行中</option>
+      <option value="已暂停">已暂停</option>
+      <option value="已停止">已停止</option>
+    </select>
+    <button class="btn" onclick="clearFilters()" title="清除筛选">✕</button>
+    <span class="info" id="filterInfo"></span>
+    <button class="btn" onclick="openPcManager()">🖥 管理电脑</button>
+    <input type="checkbox" class="cb" id="selectAll" onchange="toggleSelectAll()" title="全选">
+  </div>
   <div class="tbl-wrap">
     <table>
       <thead><tr>
-        <th>#</th><th>流程名称</th><th>电脑</th><th>开始</th><th>结束</th><th>运行时间(秒)</th><th>状态</th><th>操作</th>
+        <th style="width:28px;"><input type="checkbox" class="cb" id="selectAllHd" onchange="toggleSelectAll()" title="全选"></th>
+        <th>#</th>
+        <th>流程名称</th>
+        <th class="sortable" onclick="sortTable('pc')">电脑 <span class="arrow"></span></th>
+        <th class="sortable" onclick="sortTable('start')">开始 <span class="arrow"></span></th>
+        <th>结束</th>
+        <th class="sortable" onclick="sortTable('runtime')">运行时间 <span class="arrow"></span></th>
+        <th class="sortable" onclick="sortTable('status')">状态 <span class="arrow"></span></th>
+        <th>操作</th>
       </tr></thead>
       <tbody id="tbl"></tbody>
     </table>
+  </div>
+  <!-- 批量操作栏 -->
+  <div class="batch-bar" id="batchBar">
+    <span id="batchCount">已选 0 项</span>
+    <select id="batchStatus" onchange="batchSetStatus(this.value);this.value='';">
+      <option value="">改状态...</option>
+      <option value="运行中">运行中</option>
+      <option value="已暂停">已暂停</option>
+      <option value="已停止">已停止</option>
+    </select>
+    <button class="btn" onclick="batchSetRuntime()">⏱ 批量设运行时间</button>
+    <button class="btn red" onclick="batchDelete()">🗑 批量删除</button>
+    <button class="btn" onclick="selected.clear(); render();">✕ 取消选择</button>
+  </div>
+</div>
+
+<!-- 电脑管理弹窗 -->
+<div class="modal-bg" id="pcModalBg" onclick="if(event.target===this)closePcManager()">
+  <div class="modal-box">
+    <h3>🖥 管理电脑</h3>
+    <div class="actions">
+      <input type="text" id="newPcName" placeholder="新电脑名称" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.8rem;">
+      <button class="btn blue" onclick="addPc()">＋ 添加</button>
+    </div>
+    <div id="pcList"></div>
+    <button class="btn" onclick="closePcManager()" style="margin-top:12px;width:100%;">关闭</button>
   </div>
 </div>
 
@@ -881,7 +956,55 @@ function saveData() {
   localStorage.setItem('rpa_tasks', data);
 }
 
-let zoom = 2; // 缩放级别：1=24h全览, 2=12h, 更大=更细
+let zoom = 2;
+let filters = { search: '', pc: '', status: '' };
+let sortBy = 'start', sortAsc = true;
+let selected = new Set();
+
+function filteredTasks() {
+  let result = tasks.filter(t => {
+    const s = filters.search.toLowerCase();
+    if (s && !t.process.toLowerCase().includes(s) && !t.pc.toLowerCase().includes(s)) return false;
+    if (filters.pc && t.pc !== filters.pc) return false;
+    if (filters.status && t.status !== filters.status) return false;
+    return true;
+  });
+  result.sort((a, b) => {
+    let va, vb;
+    if (sortBy === 'start') { va = t2m(a.start); vb = t2m(b.start); }
+    else if (sortBy === 'runtime') { va = a.runtime || 0; vb = b.runtime || 0; }
+    else if (sortBy === 'pc') { va = a.pc; vb = b.pc; }
+    else if (sortBy === 'status') { va = a.status; vb = b.status; }
+    else { va = a.process; vb = b.process; }
+    if (typeof va === 'string') return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+    return sortAsc ? va - vb : vb - va;
+  });
+  return result;
+}
+
+function applyFilters() {
+  filters.search = document.getElementById('fSearch').value;
+  filters.pc = document.getElementById('fPc').value;
+  filters.status = document.getElementById('fStatus').value;
+  selected.clear();
+  render();
+}
+function clearFilters() {
+  document.getElementById('fSearch').value = '';
+  document.getElementById('fPc').value = '';
+  document.getElementById('fStatus').value = '';
+  applyFilters();
+}
+function sortTable(col) {
+  if (sortBy === col) sortAsc = !sortAsc; else { sortBy = col; sortAsc = true; }
+  render();
+}
+function toggleSelectAll() {
+  const f = filteredTasks();
+  if (selected.size === f.length && f.length > 0) selected.clear();
+  else f.forEach(t => selected.add(t.id));
+  render();
+}
 
 function setZoom(v) {
   zoom = parseInt(v);
@@ -900,10 +1023,12 @@ const fm = s => { if(!s||s<=0)return'0s'; const h=Math.floor(s/3600),m=Math.floo
 
 // ========== 渲染 ==========
 function render() {
-  // 已停止的任务不在甘特图中显示
-  const active = tasks.filter(t => t.status !== '已停止');
+  const filtered = filteredTasks();
+  // 甘特图数据：只显示活跃任务（但筛选状态为"已停止"时也显示）
+  const ganttData = filters.status ? filtered : filtered.filter(t => t.status !== '已停止');
 
-  // 统计（仅活跃任务）
+  // 统计
+  const active = tasks.filter(t => t.status !== '已停止');
   const total=active.length, ts=active.reduce((s,t)=>s+(t.runtime||0),0);
   const pcs=new Set(active.map(t=>t.pc)), prs=new Set(active.map(t=>t.process));
   document.getElementById('stats').innerHTML=
@@ -912,11 +1037,10 @@ function render() {
     '<div class="stat"><span style="font-size:1.6rem;">🖥</span><div><div class="n">'+pcs.size+'</div><div class="l">电脑数</div></div></div>'+
     '<div class="stat"><span style="font-size:1.6rem;">🔀</span><div><div class="n">'+prs.size+'</div><div class="l">流程数</div></div></div>';
 
-  // 甘特图（仅活跃任务）+ 缩放
-  const grp={}; active.forEach(t=>{ if(!grp[t.pc])grp[t.pc]=[]; grp[t.pc].push(t); });
+  // 甘特图 + 缩放
+  const grp={}; ganttData.forEach(t=>{ if(!grp[t.pc])grp[t.pc]=[]; grp[t.pc].push(t); });
   const plist=Object.keys(grp).sort();
-  const zw = 100 * zoom; // 总宽度百分比基数
-  // 时间头：根据缩放级别显示不同粒度
+  const zw = 100 * zoom;
   let g='<div class="gantt-head" style="min-width:'+(zoom*950)+'px;">';
   if(zoom<=2){
     for(let h=0;h<24;h++) g+='<span>'+String(h).padStart(2,'0')+':00</span>';
@@ -932,7 +1056,6 @@ function render() {
     g+='<div class="gantt-row" style="min-width:'+(zoom*950)+'px;"><div class="gantt-label"><span class="dot" style="background:'+PC_COLORS[i%7]+';"></span>'+esc(pcName)+'</div><div class="gantt-track">';
     items.forEach(task=>{
       const s=t2m(task.start);
-      // 位置和宽度都乘缩放倍数，无最小值限制
       const lp=(s/1440)*zw;
       const rt=task.runtime||0;
       const wp=(rt/86400)*zw;
@@ -946,23 +1069,41 @@ function render() {
   });
   document.getElementById('gantt').innerHTML=g;
 
-  // 表格（显示全部任务，已停止的用删除线标记）
-  const srt=[...tasks].sort((a,b)=>t2m(a.start)-t2m(b.start));
-  document.getElementById('tbl').innerHTML=srt.map((t,i)=>{
+  // 表格
+  document.getElementById('tbl').innerHTML=filtered.map((t,i)=>{
     const c=pc(t.process);
     const stopped = t.status==='已停止';
-    return '<tr id="row-'+t.id+'"'+(stopped?' style="opacity:0.4;text-decoration:line-through;"':'')+'><td>'+(i+1)+'</td>'+
+    const chk = selected.has(t.id) ? ' checked' : '';
+    return '<tr id="row-'+t.id+'"'+(stopped?' style="opacity:0.4;text-decoration:line-through;"':'')+'>'+
+      '<td><input type="checkbox" class="cb" onchange="toggleSel('+t.id+')"'+chk+'></td>'+
+      '<td>'+(i+1)+'</td>'+
       '<td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+c+';margin-right:5px;"></span>'+
-      '<input class="inp" value="'+esc(t.process)+'" onchange="upd('+t.id+',\'process\',this.value)" style="width:180px;font-weight:500;"></td>'+
+      '<input class="inp" value="'+esc(t.process)+'" onchange="upd('+t.id+',\'process\',this.value)" style="width:160px;font-weight:500;"></td>'+
       '<td><input class="inp" value="'+esc(t.pc)+'" onchange="upd('+t.id+',\'pc\',this.value)" style="width:100px;"></td>'+
       '<td><input class="inp tm" type="time" value="'+t.start+'" onchange="upd('+t.id+',\'start\',this.value)"></td>'+
       '<td><input class="inp tm" type="time" value="'+t.end+'" onchange="upd('+t.id+',\'end\',this.value)"></td>'+
       '<td><input class="inp rt" type="number" value="'+(t.runtime||'')+'" placeholder="秒" min="0" onblur="upd('+t.id+',\'runtime\',parseInt(this.value)||0)" onkeydown="if(event.key===\'Enter\')this.blur()"></td>'+
       '<td><select class="sel" onchange="upd('+t.id+',\'status\',this.value)"><option'+(t.status==='运行中'?' selected':'')+'>运行中</option><option'+(t.status==='已暂停'?' selected':'')+'>已暂停</option><option'+(t.status==='已停止'?' selected':'')+'>已停止</option></select></td>'+
       '<td><button class="btn red" style="padding:3px 8px;font-size:0.7rem;" onclick="del('+t.id+')">🗑</button></td></tr>';
-  }).join('') || '<tr><td colspan="8" style="text-align:center;padding:40px;color:#ccc;">暂无数据</td></tr>';
+  }).join('') || '<tr><td colspan="10" style="text-align:center;padding:40px;color:#ccc;">无匹配结果</td></tr>';
+
+  // 筛选信息 + 批量栏
+  document.getElementById('filterInfo').textContent = '显示 '+filtered.length+' / '+tasks.length+' 条';
+  const bar = document.getElementById('batchBar');
+  if (selected.size > 0) { bar.classList.add('show'); document.getElementById('batchCount').textContent = '已选 '+selected.size+' 项'; }
+  else bar.classList.remove('show');
+  // 下拉选项更新
+  const pcSel = document.getElementById('fPc');
+  const cur = pcSel.value;
+  const allPcs = [...new Set(tasks.map(t=>t.pc))].sort();
+  pcSel.innerHTML = '<option value="">🖥 全部电脑</option>'+allPcs.map(p=>'<option'+(p===cur?' selected':'')+'>'+p+'</option>').join('');
+  document.getElementById('selectAll').checked = filtered.length > 0 && selected.size === filtered.length;
+  document.getElementById('selectAllHd').checked = filtered.length > 0 && selected.size === filtered.length;
+
   saveData();
 }
+
+function toggleSel(id) { if(selected.has(id))selected.delete(id); else selected.add(id); render(); }
 
 // ========== 操作 ==========
 function upd(id, field, value) {
@@ -987,7 +1128,71 @@ function addTask() {
 
 function del(id){ if(!confirm('确定删除？'))return; tasks=tasks.filter(t=>t.id!==id); render(); }
 function edProc(id){ const t=tasks.find(x=>x.id===id); if(!t)return; const v=prompt('流程名称：',t.process); if(v&&v.trim()){t.process=v.trim();render();} }
-function resetDemo(){ if(!confirm('重置为演示数据？修改将丢失。'))return; tasks=JSON.parse(JSON.stringify(DEMO)); nid=tasks.length+1; Object.keys(pcol).forEach(k=>delete pcol[k]); render(); }
+function resetDemo(){ if(!confirm('重置为演示数据？修改将丢失。'))return; tasks=JSON.parse(JSON.stringify(DEMO)); nid=tasks.length+1; Object.keys(pcol).forEach(k=>delete pcol[k]); selected.clear(); clearFilters(); render(); }
+
+// ========== 电脑管理 ==========
+function openPcManager() {
+  document.getElementById('pcModalBg').classList.add('show');
+  renderPcList();
+}
+function closePcManager() { document.getElementById('pcModalBg').classList.remove('show'); }
+function renderPcList() {
+  const grp = {};
+  tasks.forEach(t => { if(!grp[t.pc])grp[t.pc]=0; grp[t.pc]++; });
+  document.getElementById('pcList').innerHTML = Object.keys(grp).sort().map(pc =>
+    '<div class="pc-row"><span>🖥 <b>'+esc(pc)+'</b> <span class="n">'+grp[pc]+' 个任务</span></span>'+
+    '<span style="display:flex;gap:4px;">'+
+    '<button class="btn" style="padding:3px 8px;font-size:0.7rem;" onclick="renamePc(\''+esc(pc)+'\')">✏ 重命名</button>'+
+    '<button class="btn red" style="padding:3px 8px;font-size:0.7rem;" onclick="deletePc(\''+esc(pc)+'\')">🗑</button>'+
+    '</span></div>'
+  ).join('') || '<div style="color:#ccc;padding:12px;">暂无电脑</div>';
+}
+function addPc() {
+  const name = document.getElementById('newPcName').value.trim();
+  if (!name) return;
+  if (tasks.some(t => t.pc === name)) { alert('电脑 "'+name+'" 已存在'); return; }
+  tasks.push({id:nid++, process:'新流程', pc:name, start:'09:00', end:'09:30', runtime:1800, status:'运行中'});
+  document.getElementById('newPcName').value = '';
+  render(); renderPcList();
+}
+function renamePc(oldName) {
+  const v = prompt('将 "'+oldName+'" 重命名为：', oldName);
+  if (!v || !v.trim() || v.trim() === oldName) return;
+  const newName = v.trim();
+  if (tasks.some(t => t.pc === newName)) { alert('电脑 "'+newName+'" 已存在'); return; }
+  tasks.forEach(t => { if (t.pc === oldName) t.pc = newName; });
+  render(); renderPcList();
+}
+function deletePc(pcName) {
+  const n = tasks.filter(t => t.pc === pcName).length;
+  if (!confirm('删除电脑 "'+pcName+'" 及全部 '+n+' 个任务？')) return;
+  tasks = tasks.filter(t => t.pc !== pcName);
+  // 重新分配颜色
+  Object.keys(pcol).forEach(k => delete pcol[k]);
+  render(); renderPcList();
+}
+
+// ========== 批量操作 ==========
+function batchSetStatus(st) {
+  if (!st) return;
+  tasks.forEach(t => { if (selected.has(t.id)) t.status = st; });
+  selected.clear();
+  render();
+}
+function batchSetRuntime() {
+  const v = prompt('批量设置运行时间（秒）：', '1800');
+  if (!v) return;
+  const rt = parseInt(v) || 0;
+  tasks.forEach(t => { if (selected.has(t.id)) { t.runtime = rt; t.end = m2t(t2m(t.start) + Math.ceil(rt/60)); } });
+  selected.clear();
+  render();
+}
+function batchDelete() {
+  if (!confirm('确定删除选中的 '+selected.size+' 个任务？')) return;
+  tasks = tasks.filter(t => !selected.has(t.id));
+  selected.clear();
+  render();
+}
 
 // 提示框
 function shTip(e,id){
