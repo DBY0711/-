@@ -35,7 +35,9 @@ def get_tasks():
 def post_tasks():
     """保存所有任务"""
     try:
-        body = request.get_json()
+        body = request.get_json(force=True, silent=True)
+        if not body:
+            return jsonify({"success": False, "message": "无效的JSON数据"}), 400
         tasks = body.get("tasks", [])
         nid = body.get("nid", 1)
         data = {

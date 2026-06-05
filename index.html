@@ -847,13 +847,13 @@ async function loadData() {
   try {
     const res = await fetch('/api/tasks');
     const json = await res.json();
+    apiAvailable = true; // API 可达就标记
     if (json.success && json.data && json.data.tasks) {
       tasks = json.data.tasks;
       nid = json.data.nid;
-      apiAvailable = true;
       return;
     }
-  } catch(e) { /* 服务器不可用 */ }
+  } catch(e) { /* 服务器不可用，apiAvailable 保持 false */ }
 
   // 2. 服务器不可用，用 localStorage
   const saved = localStorage.getItem('rpa_tasks');
