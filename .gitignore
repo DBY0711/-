@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.claude/
+node_modules/
+chart*.json
+demo_array.txt
+tasks_data.json
+.DS_Store
+Thumbs.db

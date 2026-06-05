@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPA 每日调度模板</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: "PingFang SC","Microsoft YaHei","Segoe UI",sans-serif; background:#f0f2f5; color:#1a1d28; }
+.container { max-width:1500px; margin:0 auto; padding:16px; }
+
+/* 头部 */
+.header { background:#fff; border-radius:10px; padding:16px 24px; margin-bottom:14px; box-shadow:0 1px 3px rgba(0,0,0,0.06); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+.header h1 { font-size:1.2rem; color:#5b6abf; }
+.header .btns { display:flex; gap:6px; flex-wrap:wrap; }
+.btn { padding:7px 13px; border:1px solid #ddd; border-radius:6px; background:#fff; cursor:pointer; font-size:0.8rem; transition:all 0.15s; }
+.btn:hover { background:#f5f5f5; }
+.btn.blue { background:#5b6abf; color:#fff; border-color:#5b6abf; }
+.btn.blue:hover { background:#4a59ad; }
+.btn.red { color:#d44; border-color:#fcc; }
+.btn.red:hover { background:#fff5f5; }
+
+/* 统计 */
+.stats { display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+.stat { background:#fff; border-radius:10px; padding:14px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.06); display:flex; align-items:center; gap:12px; flex:1; min-width:150px; }
+.stat .n { font-size:1.5rem; font-weight:700; }
+.stat .l { font-size:0.73rem; color:#888; }
+
+/* 卡片 */
+.card { background:#fff; border-radius:10px; padding:18px 22px; margin-bottom:14px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+.card h2 { font-size:0.95rem; margin-bottom:12px; }
+
+/* 甘特 */
+.gantt-box { overflow-x:auto; }
+.gantt { min-width:950px; }
+.gantt-head { display:flex; padding-left:150px; height:28px; border-bottom:1px solid #eee; }
+.gantt-head span { flex:1; text-align:center; font-size:0.65rem; color:#999; line-height:28px; border-left:1px solid #f0f0f0; }
+.gantt-row { display:flex; border-bottom:1px solid #f8f8f8; min-height:46px; }
+.gantt-row:hover { background:#fafbfd; }
+.gantt-label { width:150px; flex-shrink:0; padding:10px 12px; font-size:0.8rem; font-weight:600; border-right:2px solid #f0f0f0; display:flex; align-items:center; gap:8px; position:sticky; left:0; background:inherit; }
+.gantt-label .dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+.gantt-track { flex:1; position:relative; min-height:46px; }
+.gantt-bar { position:absolute; top:5px; bottom:5px; border-radius:4px; cursor:pointer; display:flex; align-items:center; padding:0 8px; overflow:hidden; white-space:nowrap; font-size:0.7rem; color:#fff; font-weight:500; z-index:2; box-shadow:0 1px 2px rgba(0,0,0,0.1); transition:filter 0.12s; }
+.gantt-bar:hover { filter:brightness(1.15); z-index:20; }
+
+/* 表格 */
+.tbl-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+th { background:#f8fafc; padding:8px 10px; text-align:left; font-weight:600; border-bottom:2px solid #eee; font-size:0.72rem; color:#888; white-space:nowrap; }
+td { padding:6px 10px; border-bottom:1px solid #f5f5f5; }
+tr:hover td { background:#fafcfd; }
+.inp { border:1px solid transparent; padding:3px 6px; border-radius:3px; font:inherit; background:transparent; width:100%; }
+.inp:hover { border-color:#ddd; }
+.inp:focus { border-color:#5b6abf; outline:none; background:#fff; }
+.inp.tm { width:90px; text-align:center; font-family:monospace; }
+.inp.rt { width:80px; text-align:center; font-weight:600; background:#fffef5; border-color:#e8d48b; }
+.sel { border:1px solid transparent; padding:3px; border-radius:3px; font:inherit; background:transparent; }
+.sel:hover { border-color:#ddd; }
+
+/* 提示 */
+.tooltip { position:fixed; z-index:999; background:#222; color:#fff; padding:10px 14px; border-radius:8px; font-size:0.8rem; pointer-events:none; opacity:0; transition:opacity 0.1s; }
+.tooltip.on { opacity:1; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>📊 RPA 每日调度模板</h1>
+  <div class="btns">
+    <button class="btn blue" onclick="addTask()">＋ 添加任务</button>
+    <button class="btn" onclick="exportData()">📥 导出</button>
+    <button class="btn" onclick="document.getElementById('imp').click()">📤 导入</button>
+    <input type="file" id="imp" accept=".json" style="display:none" onchange="importData(event)">
+    <button class="btn" onclick="resetDemo()">🔄 重置</button>
+  </div>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<div class="card">
+  <h2>📅 每日甘特图 <span style="font-weight:400;font-size:0.73rem;color:#999;">（悬停看详情 · 双击改名称 · 运行时间在表格填写）</span></h2>
+  <div class="gantt-box"><div class="gantt" id="gantt"></div></div>
+</div>
+
+<div class="card">
+  <h2>📝 任务列表</h2>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>#</th><th>流程名称</th><th>电脑</th><th>开始</th><th>结束</th><th>运行时间(秒)</th><th>状态</th><th>操作</th>
+      </tr></thead>
+      <tbody id="tbl"></tbody>
+    </table>
+  </div>
+</div>
+
+</div>
+<div class="tooltip" id="tip"></div>
+
+<script>
+// ========== 数据 ==========
+const PC_COLORS = ['#5b6abf','#0891b2','#c026d3','#e05560','#e8a830','#8bc34a','#00bcd4'];
+const PROC_COLORS = ['#5b6abf','#8b5cf6','#e05560','#e8a830','#3b82b8','#8bc34a','#00bcd4','#ab47bc','#26a69a','#ff7043','#78909c','#ec407a'];
+const pcol = {};
+
+function pc(n) { if(!pcol[n]) pcol[n]=PROC_COLORS[Object.keys(pcol).length%PROC_COLORS.length]; return pcol[n]; }
+
+const DEMO = [
+  {
+    "process": "清楚缓存记录",
+    "pc": "rpa4@szlc",
+    "start": "22:00",
+    "end": "22:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 1
+  },
+  {
+    "process": "优惠券巡检",
+    "pc": "rpa3@szlc",
+    "start": "01:30",
+    "end": "02:00",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 2
+  },
+  {
+    "process": "打样纸样保密抓取",
+    "pc": "rpa8@szlc",
+    "start": "00:30",
+    "end": "01:00",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 3
+  },
+  {
+    "process": "各平台-店铺综合评分抓取-新流程",
+    "pc": "rpa3@szlc",
+    "start": "17:00",
+    "end": "17:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 4
+  },
+  {
+    "process": "视频号-直播-数据大屏",
+    "pc": "rpa7@szlc",
+    "start": "10:00",
+    "end": "10:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 5
+  },
+  {
+    "process": "抖音加热-短视频",
+    "pc": "rpa7@szlc",
+    "start": "06:00",
+    "end": "06:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 6
+  },
+  {
+    "process": "快手-生意通-短视频-短视频列表",
+    "pc": "rpa7@szlc",
+    "start": "17:00",
+    "end": "17:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 7
+  },
+  {
+    "process": "视频号_加热平台_直播订单_标准",
+    "pc": "rpa6@szlc",
+    "start": "10:20",
+    "end": "10:50",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 8
+  },
+  {
+    "process": "视频号-加热平台-加热数据",
+    "pc": "rpa6@szlc",
+    "start": "10:00",
+    "end": "10:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 9
+  },
+  {
+    "process": "拼多多-订单导出-近3个月",
+    "pc": "rpa7@szlc",
+    "start": "01:00",
+    "end": "01:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 10
+  },
+  {
+    "process": "拼多多-售后导出",
+    "pc": "rpa7@szlc",
+    "start": "01:30",
+    "end": "02:00",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 11
+  },
+  {
+    "process": "快手-商品卡-商品卡概览-商品列表",
+    "pc": "rpa3@szlc",
+    "start": "13:10",
+    "end": "13:40",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 12
+  },
+  {
+    "process": "快手-直播-直播列表-大屏复盘",
+    "pc": "rpa3@szlc",
+    "start": "13:20",
+    "end": "13:50",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 13
+  },
+  {
+    "process": "抖音-直播-直播列表-直播大屏",
+    "pc": "rpa3@szlc",
+    "start": "13:30",
+    "end": "14:00",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 14
+  },
+  {
+    "process": "视频号-视频号助手-数据中心-直播数据-单场数据（更新后）",
+    "pc": "rpa3@szlc",
+    "start": "11:00",
+    "end": "11:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 15
+  },
+  {
+    "process": "抖音-商品卡-商品卡明细-商品卡列表",
+    "pc": "rpa6@szlc",
+    "start": "13:20",
+    "end": "13:50",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 16
+  },
+  {
+    "process": "小红书-商品-商品列表",
+    "pc": "rpa8@szlc",
+    "start": "07:00",
+    "end": "07:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 17
+  },
+  {
+    "process": "挂车视频表同步到数据库",
+    "pc": "rpa3@szlc",
+    "start": "02:00",
+    "end": "02:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 18
+  },
+  {
+    "process": "视频号-商品管理-商品列表",
+    "pc": "rpa3@szlc",
+    "start": "02:40",
+    "end": "03:10",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 19
+  },
+  {
+    "process": "款式总表4.0和聚水潭商品资料-同步到数据库",
+    "pc": "rpa7@szlc",
+    "start": "07:00",
+    "end": "07:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 20
+  },
+  {
+    "process": "小红书-数据-笔记数据-商品笔记明细",
+    "pc": "rpa3@szlc",
+    "start": "10:00",
+    "end": "10:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 21
+  },
+  {
+    "process": "视频号-用户ID信息提取-接口版",
+    "pc": "rpa3@szlc",
+    "start": "00:00",
+    "end": "00:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 22
+  },
+  {
+    "process": "抖音-罗盘-数据工厂-商品流量-交易明细",
+    "pc": "rpa6@szlc",
+    "start": "13:30",
+    "end": "14:00",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 23
+  },
+  {
+    "process": "小红书-商品数据-商品总览-商品列表",
+    "pc": "rpa3@szlc",
+    "start": "13:00",
+    "end": "13:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 24
+  },
+  {
+    "process": "抖店-商品评价管理",
+    "pc": "rpa3@szlc",
+    "start": "15:20",
+    "end": "15:50",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 25
+  },
+  {
+    "process": "小红书-商品评价管理",
+    "pc": "rpa3@szlc",
+    "start": "15:30",
+    "end": "16:00",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 26
+  },
+  {
+    "process": "快手-商品评价管理",
+    "pc": "rpa3@szlc",
+    "start": "15:40",
+    "end": "16:10",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 27
+  },
+  {
+    "process": "拼多多-商品评价管理",
+    "pc": "rpa7@szlc",
+    "start": "06:10",
+    "end": "06:40",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 28
+  },
+  {
+    "process": "百度优选-直播数据-数据概览-每日明细",
+    "pc": "rpa3@szlc",
+    "start": "08:00",
+    "end": "08:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 29
+  },
+  {
+    "process": "百度优选-直播数据-直播明细-数据大屏",
+    "pc": "rpa3@szlc",
+    "start": "11:30",
+    "end": "12:00",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 30
+  },
+  {
+    "process": "有赞-订单导出",
+    "pc": "rpa5@szlc",
+    "start": "00:40",
+    "end": "01:10",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 31
+  },
+  {
+    "process": "有赞-售后导出",
+    "pc": "rpa5@szlc",
+    "start": "01:00",
+    "end": "01:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 32
+  },
+  {
+    "process": "有赞-商品管理",
+    "pc": "rpa5@szlc",
+    "start": "01:30",
+    "end": "02:00",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 33
+  },
+  {
+    "process": "淘宝C店-售后导出",
+    "pc": "rpa5@szlc",
+    "start": "00:00",
+    "end": "00:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 34
+  },
+  {
+    "process": "抖音-罗盘-数据工厂-短视频明细",
+    "pc": "rpa8@szlc",
+    "start": "09:00",
+    "end": "09:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 35
+  },
+  {
+    "process": "有赞-用户ID信息提取",
+    "pc": "rpa5@szlc",
+    "start": "02:00",
+    "end": "02:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 36
+  },
+  {
+    "process": "淘宝C店-商品列表-更新后",
+    "pc": "rpa8@szlc",
+    "start": "01:00",
+    "end": "01:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 37
+  },
+  {
+    "process": "淘宝C店-用户ID抓取",
+    "pc": "rpa5@szlc",
+    "start": "11:00",
+    "end": "11:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 38
+  },
+  {
+    "process": "快手-商品-本店分析-商品列表",
+    "pc": "rpa5@szlc",
+    "start": "13:00",
+    "end": "13:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 39
+  },
+  {
+    "process": "仓库-销售出库单-顺丰未发货快递推送",
+    "pc": "rpa5@szlc",
+    "start": "10:00",
+    "end": "10:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 40
+  },
+  {
+    "process": "有赞-商品评价管理",
+    "pc": "rpa5@szlc",
+    "start": "02:10",
+    "end": "02:40",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 41
+  },
+  {
+    "process": "百度优选-商品评价管理",
+    "pc": "rpa5@szlc",
+    "start": "02:15",
+    "end": "02:45",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 42
+  },
+  {
+    "process": "淘宝(千牛)-商品评价管理",
+    "pc": "rpa5@szlc",
+    "start": "02:30",
+    "end": "03:00",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 43
+  },
+  {
+    "process": "有赞-客服会话记录",
+    "pc": "rpa5@szlc",
+    "start": "13:05",
+    "end": "13:35",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 44
+  },
+  {
+    "process": "百度优选-客服会话记录",
+    "pc": "rpa5@szlc",
+    "start": "13:10",
+    "end": "13:40",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 45
+  },
+  {
+    "process": "淘宝生意参谋-客服会话记录",
+    "pc": "rpa5@szlc",
+    "start": "13:15",
+    "end": "13:45",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 46
+  },
+  {
+    "process": "小红书-客服会话记录",
+    "pc": "rpa5@szlc",
+    "start": "13:20",
+    "end": "13:50",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 47
+  },
+  {
+    "process": "拼多多-客服会话记录",
+    "pc": "rpa5@szlc",
+    "start": "13:25",
+    "end": "13:55",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 48
+  },
+  {
+    "process": "快手快语-客服会话记录",
+    "pc": "rpa5@szlc",
+    "start": "13:30",
+    "end": "14:00",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 49
+  },
+  {
+    "process": "抖店飞鸽-客服会话记录",
+    "pc": "rpa5@szlc",
+    "start": "13:35",
+    "end": "14:05",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 50
+  },
+  {
+    "process": "百度优选-订单导出",
+    "pc": "rpa5@szlc",
+    "start": "02:50",
+    "end": "03:20",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 51
+  },
+  {
+    "process": "百度优选-售后导出",
+    "pc": "rpa5@szlc",
+    "start": "03:00",
+    "end": "03:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 52
+  },
+  {
+    "process": "百度优选-商品管理",
+    "pc": "rpa5@szlc",
+    "start": "03:20",
+    "end": "03:50",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 53
+  },
+  {
+    "process": "百度优选-用户ID提取",
+    "pc": "rpa5@szlc",
+    "start": "03:30",
+    "end": "04:00",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 54
+  },
+  {
+    "process": "百度优选-商品列表",
+    "pc": "rpa5@szlc",
+    "start": "05:30",
+    "end": "06:00",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 55
+  },
+  {
+    "process": "拼多多-商品列表",
+    "pc": "rpa5@szlc",
+    "start": "03:40",
+    "end": "04:10",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 56
+  },
+  {
+    "process": "淘宝直播店-数据-交易分析-商品构成",
+    "pc": "rpa5@szlc",
+    "start": "04:00",
+    "end": "04:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 57
+  },
+  {
+    "process": "淘宝生意参谋-内容-内容概况-作品分析-更新后",
+    "pc": "rpa5@szlc",
+    "start": "17:20",
+    "end": "17:50",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 58
+  },
+  {
+    "process": "淘宝生意参谋-商品-商品排行",
+    "pc": "rpa5@szlc",
+    "start": "04:30",
+    "end": "05:00",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 59
+  },
+  {
+    "process": "淘宝生意参谋-业务专区-手淘信息流",
+    "pc": "rpa5@szlc",
+    "start": "04:40",
+    "end": "05:10",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 60
+  },
+  {
+    "process": "淘宝生意参谋-客户-店铺页分析-商品详情页",
+    "pc": "rpa5@szlc",
+    "start": "14:40",
+    "end": "15:10",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 61
+  },
+  {
+    "process": "淘宝生意参谋-自助分析-分析空间-个人空间-取数报表",
+    "pc": "rpa5@szlc",
+    "start": "13:40",
+    "end": "14:10",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 62
+  },
+  {
+    "process": "商品直播选款LSEI每日快照生成",
+    "pc": "rpa5@szlc",
+    "start": "22:00",
+    "end": "22:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 63
+  },
+  {
+    "process": "淘宝C店-订单导出-报表生成",
+    "pc": "rpa7@szlc",
+    "start": "00:10",
+    "end": "00:40",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 64
+  },
+  {
+    "process": "淘宝C店-订单导出--手动生成报表",
+    "pc": "rpa7@szlc",
+    "start": "05:00",
+    "end": "05:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 65
+  },
+  {
+    "process": "商品库存数据_SPU同步到数据库",
+    "pc": "rpa2@szlc",
+    "start": "02:00",
+    "end": "02:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 66
+  },
+  {
+    "process": "抖音-西子-商品列表数据下载",
+    "pc": "rpa2@szlc",
+    "start": "10:00",
+    "end": "10:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 67
+  },
+  {
+    "process": "抖音（西子小老板娘）-带货分",
+    "pc": "rpa2@szlc",
+    "start": "10:10",
+    "end": "10:40",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 68
+  },
+  {
+    "process": "视频号(西子原创女装，西子，西子高端女装)-店铺分",
+    "pc": "rpa2@szlc",
+    "start": "10:20",
+    "end": "10:50",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 69
+  },
+  {
+    "process": "快手西子小老板娘-带货分",
+    "pc": "rpa2@szlc",
+    "start": "10:40",
+    "end": "11:10",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 70
+  },
+  {
+    "process": "小红书（玉西子，西子高端女装的店）-店铺分-更新后",
+    "pc": "rpa2@szlc",
+    "start": "10:50",
+    "end": "11:20",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 71
+  },
+  {
+    "process": "抖音罗盘经营-每日商品卡流量成交情况（更新2）",
+    "pc": "rpa2@szlc",
+    "start": "11:00",
+    "end": "11:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 72
+  },
+  {
+    "process": "客服日工作数据统计-小红书近105天-更新后",
+    "pc": "rpa2@szlc",
+    "start": "11:20",
+    "end": "11:50",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 73
+  },
+  {
+    "process": "抖音罗盘经营-商品-（商品概览，流量分析）",
+    "pc": "rpa2@szlc",
+    "start": "11:30",
+    "end": "12:00",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 74
+  },
+  {
+    "process": "小红书-订单导出-每日",
+    "pc": "rpa2@szlc",
+    "start": "00:30",
+    "end": "01:00",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 75
+  },
+  {
+    "process": "视频号-视频号助手-短视频_短视频分析_短视频明细",
+    "pc": "rpa2@szlc",
+    "start": "13:30",
+    "end": "14:00",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 76
+  },
+  {
+    "process": "抖音用户id信息",
+    "pc": "rpa2@szlc",
+    "start": "00:00",
+    "end": "00:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 77
+  },
+  {
+    "process": "小红书千帆-数据-直播场次-数据大屏",
+    "pc": "rpa2@szlc",
+    "start": "11:40",
+    "end": "12:10",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 78
+  },
+  {
+    "process": "各平台-店铺综合评分抓取（无微信小店）",
+    "pc": "rpa2@szlc",
+    "start": "12:00",
+    "end": "12:30",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 79
+  },
+  {
+    "process": "微信小店-客服会话记录-商品评价管理-评分抓取（结合版）",
+    "pc": "rpa7@szlc",
+    "start": "10:03",
+    "end": "10:33",
+    "runtime": 1800,
+    "status": "运行中",
+    "id": 80
+  }
+];
+
+let tasks = JSON.parse(JSON.stringify(DEMO));
+let nid = 81;
+
+// ========== 工具 ==========
+const t2m = s => { const [h,m]=s.split(':').map(Number); return h*60+m; };
+const m2t = m => { m=((m%1440)+1440)%1440; return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); };
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fm = s => { if(!s||s<=0)return'0s'; const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),v=s%60; return h>0?h+'h'+(m?m+'m':''):m>0?m+'m'+(v?v+'s':''):v+'s'; };
+
+// ========== 渲染 ==========
+function render() {
+  // 已停止的任务不在甘特图中显示
+  const active = tasks.filter(t => t.status !== '已停止');
+
+  // 统计（仅活跃任务）
+  const total=active.length, ts=active.reduce((s,t)=>s+(t.runtime||0),0);
+  const pcs=new Set(active.map(t=>t.pc)), prs=new Set(active.map(t=>t.process));
+  document.getElementById('stats').innerHTML=
+    '<div class="stat"><span style="font-size:1.6rem;">📋</span><div><div class="n">'+total+'</div><div class="l">活跃任务</div></div></div>'+
+    '<div class="stat"><span style="font-size:1.6rem;">⏱</span><div><div class="n">'+fm(ts)+'</div><div class="l">总运行时间</div></div></div>'+
+    '<div class="stat"><span style="font-size:1.6rem;">🖥</span><div><div class="n">'+pcs.size+'</div><div class="l">电脑数</div></div></div>'+
+    '<div class="stat"><span style="font-size:1.6rem;">🔀</span><div><div class="n">'+prs.size+'</div><div class="l">流程数</div></div></div>';
+
+  // 甘特图（仅活跃任务）
+  const grp={}; active.forEach(t=>{ if(!grp[t.pc])grp[t.pc]=[]; grp[t.pc].push(t); });
+  const plist=Object.keys(grp).sort();
+  let g='<div class="gantt-head">';
+  for(let h=0;h<24;h++) g+='<span>'+String(h).padStart(2,'0')+':00</span>';
+  g+='</div>';
+  plist.forEach((pcName,i)=>{
+    const items=grp[pcName].sort((a,b)=>t2m(a.start)-t2m(b.start));
+    g+='<div class="gantt-row"><div class="gantt-label"><span class="dot" style="background:'+PC_COLORS[i%7]+';"></span>'+esc(pcName)+'</div><div class="gantt-track">';
+    items.forEach(task=>{
+      const s=t2m(task.start), e=t2m(task.end);
+      const lp=(s/1440)*100, wp=Math.max(((e-s)/1440)*100, 2.5);
+      const c=pc(task.process), rt=task.runtime||0;
+      g+='<div class="gantt-bar" style="left:'+lp+'%;width:'+wp+'%;background:'+c+';" '+
+        'onmouseenter="shTip(event,'+task.id+')" onmouseleave="hiTip()" ondblclick="edProc('+task.id+')" '+
+        'title="'+esc(task.process)+' | '+task.start+'-'+task.end+' | '+fm(rt)+'">'+
+        (wp>=4?esc(task.process):'')+'</div>';
+    });
+    g+='</div></div>';
+  });
+  document.getElementById('gantt').innerHTML=g;
+
+  // 表格（显示全部任务，已停止的用删除线标记）
+  const srt=[...tasks].sort((a,b)=>t2m(a.start)-t2m(b.start));
+  document.getElementById('tbl').innerHTML=srt.map((t,i)=>{
+    const c=pc(t.process);
+    const stopped = t.status==='已停止';
+    return '<tr'+(stopped?' style="opacity:0.4;text-decoration:line-through;"':'')+'><td>'+(i+1)+'</td>'+
+      '<td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+c+';margin-right:5px;"></span>'+
+      '<input class="inp" value="'+esc(t.process)+'" onchange="upd('+t.id+',\'process\',this.value)" style="width:180px;font-weight:500;"></td>'+
+      '<td><input class="inp" value="'+esc(t.pc)+'" onchange="upd('+t.id+',\'pc\',this.value)" style="width:100px;"></td>'+
+      '<td><input class="inp tm" type="time" value="'+t.start+'" onchange="upd('+t.id+',\'start\',this.value)"></td>'+
+      '<td><input class="inp tm" type="time" value="'+t.end+'" onchange="upd('+t.id+',\'end\',this.value)"></td>'+
+      '<td><input class="inp rt" type="number" value="'+(t.runtime||'')+'" placeholder="秒" min="0" onblur="upd('+t.id+',\'runtime\',parseInt(this.value)||0)" onkeydown="if(event.key===\'Enter\')this.blur()"></td>'+
+      '<td><select class="sel" onchange="upd('+t.id+',\'status\',this.value)"><option'+(t.status==='运行中'?' selected':'')+'>运行中</option><option'+(t.status==='已暂停'?' selected':'')+'>已暂停</option><option'+(t.status==='已停止'?' selected':'')+'>已停止</option></select></td>'+
+      '<td><button class="btn red" style="padding:3px 8px;font-size:0.7rem;" onclick="del('+t.id+')">🗑</button></td></tr>';
+  }).join('') || '<tr><td colspan="8" style="text-align:center;padding:40px;color:#ccc;">暂无数据</td></tr>';
+}
+
+// ========== 操作 ==========
+function upd(id, field, value) {
+  const t=tasks.find(x=>x.id===id); if(!t) return;
+  t[field]=value;
+  if(field==='start'||field==='end'){ const s=t2m(t.start),e=t2m(t.end); t.runtime=Math.max(0,(e-s)*60); }
+  if(field==='runtime') t.end=m2t(t2m(t.start)+Math.floor(value/60));
+  render();
+}
+
+function addTask() {
+  const pcs=[...new Set(tasks.map(t=>t.pc))];
+  tasks.push({id:nid++, process:'新流程', pc:pcs[0]||'电脑A', start:'09:00', end:'09:30', runtime:1800, status:'运行中'});
+  render();
+  setTimeout(()=>{ const el=document.querySelector('#tbl tr:last-child'); if(el)el.scrollIntoView({behavior:'smooth'}); },100);
+}
+
+function del(id){ if(!confirm('确定删除？'))return; tasks=tasks.filter(t=>t.id!==id); render(); }
+function edProc(id){ const t=tasks.find(x=>x.id===id); if(!t)return; const v=prompt('流程名称：',t.process); if(v&&v.trim()){t.process=v.trim();render();} }
+function resetDemo(){ if(!confirm('重置为演示数据？修改将丢失。'))return; tasks=JSON.parse(JSON.stringify(DEMO)); nid=tasks.length+1; Object.keys(pcol).forEach(k=>delete pcol[k]); render(); }
+
+// 提示框
+function shTip(e,id){
+  const t=tasks.find(x=>x.id===id); if(!t)return;
+  const tip=document.getElementById('tip');
+  tip.innerHTML='<b>'+esc(t.process)+'</b><br>🖥 '+esc(t.pc)+'<br>🕐 '+t.start+' → '+t.end+'（'+(t2m(t.end)-t2m(t.start))+'分钟）<br>⏱ 运行时间：'+fm(t.runtime||0)+'<br>📌 '+t.status;
+  tip.classList.add('on');
+  let x=e.clientX+14,y=e.clientY+14;
+  if(x+300>innerWidth)x=e.clientX-300;
+  if(y+150>innerHeight)y=e.clientY-150;
+  tip.style.left=x+'px';tip.style.top=y+'px';
+}
+function hiTip(){ document.getElementById('tip').classList.remove('on'); }
+document.addEventListener('mousemove',e=>{
+  const tip=document.getElementById('tip');
+  if(tip.classList.contains('on')){ let x=e.clientX+14,y=e.clientY+14; if(x+300>innerWidth)x=e.clientX-300; if(y+150>innerHeight)y=e.clientY-150; tip.style.left=x+'px';tip.style.top=y+'px'; }
+});
+
+// 导入导出
+function exportData(){
+  const b=new Blob([JSON.stringify({tasks,time:new Date().toISOString()},null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='rpa-schedule.json'; a.click(); URL.revokeObjectURL(a.href);
+}
+function importData(e){
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader(); r.onload=ev=>{ try{ const d=JSON.parse(ev.target.result); if(d.tasks){tasks=d.tasks;nid=Math.max(...tasks.map(t=>t.id),0)+1;render();alert('导入 '+tasks.length+' 条');} }catch(err){alert('解析失败');} }; r.readAsText(f); e.target.value='';
+}
+
+document.addEventListener('keydown',e=>{ if(e.ctrlKey&&e.key==='n'){e.preventDefault();addTask();} if(e.ctrlKey&&e.key==='s'){e.preventDefault();exportData();} });
+
+// 启动
+render();
+</script>
+</body>
+</html>
