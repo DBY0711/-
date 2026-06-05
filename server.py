@@ -168,8 +168,8 @@ def yd_callback():
             run_status = job.get("status") or task_status
             is_failed = run_status in ["error", "fail", "timeout", "stopped", "cancel"]
 
-            msg = f"[回调] {app_name}: {run_status}"
-            if is_failed: msg += " ❌"
+            msg = f"[callback] {app_name}: {run_status}"
+            if is_failed: msg += " [FAILED]"
             print(msg)
 
             # 失败则检查是否自动重跑
