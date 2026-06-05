@@ -838,19 +838,49 @@ const DEMO = [
   }
 ];
 
-// 从 localStorage 加载，没有则用演示数据
+// 数据加载：服务器 → localStorage → 演示数据
 let tasks, nid;
-const saved = localStorage.getItem('rpa_tasks');
-if (saved) {
-  try { const d = JSON.parse(saved); tasks = d.tasks; nid = d.nid; }
-  catch(e) { tasks = JSON.parse(JSON.stringify(DEMO)); nid = 81; }
-} else {
+let apiAvailable = false;
+
+async function loadData() {
+  // 1. 尝试从服务器加载
+  try {
+    const res = await fetch('/api/tasks');
+    const json = await res.json();
+    if (json.success && json.data && json.data.tasks) {
+      tasks = json.data.tasks;
+      nid = json.data.nid;
+      apiAvailable = true;
+      return;
+    }
+  } catch(e) { /* 服务器不可用 */ }
+
+  // 2. 服务器不可用，用 localStorage
+  const saved = localStorage.getItem('rpa_tasks');
+  if (saved) {
+    try { const d = JSON.parse(saved); tasks = d.tasks; nid = d.nid; return; }
+    catch(e) {}
+  }
+
+  // 3. 都没有，用演示数据
   tasks = JSON.parse(JSON.stringify(DEMO));
   nid = 81;
 }
+
 function saveData() {
-  localStorage.setItem('rpa_tasks', JSON.stringify({tasks, nid}));
+  const data = JSON.stringify({tasks, nid});
+  // 存服务器
+  if (apiAvailable) {
+    fetch('/api/tasks', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: data
+    }).catch(() => {});
+  }
+  // 同时存 localStorage 兜底
+  localStorage.setItem('rpa_tasks', data);
 }
+
 let zoom = 2; // 缩放级别：1=24h全览, 2=12h, 更大=更细
 
 function setZoom(v) {
@@ -989,7 +1019,7 @@ function importData(e){
 document.addEventListener('keydown',e=>{ if(e.ctrlKey&&e.key==='n'){e.preventDefault();addTask();} if(e.ctrlKey&&e.key==='s'){e.preventDefault();exportData();} });
 
 // 启动
-render();
+loadData().then(() => render());
 </script>
 </body>
 </html>
