@@ -103,6 +103,7 @@ th.sortable .arrow { font-size:0.6rem; margin-left:2px; }
   <h1>📊 RPA 每日调度模板</h1>
   <div class="btns">
     <button class="btn blue" onclick="addTask()">＋ 添加任务</button>
+    <button class="btn" onclick="syncYingdao()" style="background:#e8f4fd;color:#0891b2;border-color:#b8e4f5;" title="从影刀同步运行状态">🔄 同步影刀</button>
     <button class="btn" onclick="exportData()">📥 导出</button>
     <button class="btn" onclick="document.getElementById('imp').click()">📤 导入</button>
     <input type="file" id="imp" accept=".json" style="display:none" onchange="importData(event)">
@@ -123,6 +124,7 @@ th.sortable .arrow { font-size:0.6rem; margin-left:2px; }
     </span>
   </h2>
   <div class="gantt-box"><div class="gantt" id="gantt"></div></div>
+  <div id="ydStatus" style="margin-top:10px;font-size:0.78rem;color:#888;"></div>
 </div>
 
 <div class="card">
@@ -156,7 +158,7 @@ th.sortable .arrow { font-size:0.6rem; margin-left:2px; }
         <th>结束</th>
         <th class="sortable" onclick="sortTable('runtime')">运行时间 <span class="arrow"></span></th>
         <th class="sortable" onclick="sortTable('status')">状态 <span class="arrow"></span></th>
-        <th>Webhook</th><th>操作</th>
+        <th>Webhook</th><th style="width:42px;" title="同步影刀后自动重跑失败任务">自动<br>重跑</th><th>操作</th>
       </tr></thead>
       <tbody id="tbl"></tbody>
     </table>
@@ -1102,7 +1104,12 @@ function render() {
     return '<tr id="row-'+t.id+'"'+(stopped?' style="opacity:0.4;text-decoration:line-through;"':'')+'>'+
       '<td><input type="checkbox" class="cb" onchange="toggleSel('+t.id+')"'+chk+'></td>'+
       '<td>'+(i+1)+'</td>'+
-      '<td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+c+';margin-right:5px;"></span>'+
+      '<td>'+
+        // 影刀运行状态指示
+        (ydCache[t.process] ? (ydCache[t.process].status===3||ydCache[t.process].status==='失败'||ydCache[t.process].error
+          ? '<span title="失败: '+esc(ydCache[t.process].error||'')+'" style="cursor:pointer;color:#e05560;" onclick="rerunFailed('+t.id+')">❌</span> '
+          : '<span title="运行正常">✅</span> ') : '')+
+      '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+c+';margin-right:5px;"></span>'+
       '<input class="inp" value="'+esc(t.process)+'" onchange="upd('+t.id+',\'process\',this.value)" style="width:150px;font-weight:500;"></td>'+
       '<td><input class="inp cat-inp" list="catList" value="'+(t.category||'')+'" onchange="upd('+t.id+',\'category\',this.value)" placeholder="分类"></td>'+
       '<td><input class="inp" value="'+esc(t.pc)+'" onchange="upd('+t.id+',\'pc\',this.value)" style="width:95px;"></td>'+
@@ -1114,6 +1121,7 @@ function render() {
         '<input class="inp" value="'+(t.webhook||'')+'" onchange="upd('+t.id+',\'webhook\',this.value)" placeholder="URL" style="width:80px;font-size:0.7rem;" title="Webhook 地址">'+
         '<button style="margin-left:2px;padding:2px 6px;font-size:0.65rem;cursor:pointer;background:#5b6abf;color:#fff;border:none;border-radius:3px;" '+
         'onclick="triggerWh('+t.id+')" title="手动触发">⚡</button></td>'+
+      '<td style="text-align:center;"><input type="checkbox" class="cb" '+(t.autoRerun?'checked':'')+' onchange="upd('+t.id+',\'autoRerun\',this.checked)" title="同步后自动重跑失败任务"></td>'+
       '<td><button class="btn red" style="padding:3px 8px;font-size:0.7rem;" onclick="del('+t.id+')">🗑</button></td></tr>';
   }).join('') || '<tr><td colspan="12" style="text-align:center;padding:40px;color:#ccc;">无匹配结果</td></tr>';
 
@@ -1278,6 +1286,81 @@ function openWhLog() {
 }
 
 function closeWhLog() { document.getElementById('whModalBg').classList.remove('show'); }
+
+// ========== 影刀同步 ==========
+let ydCache = {}; // 缓存同步结果 {process: {status, error, uuid, robotUuid, lastRun}}
+
+function syncYingdao() {
+  if (!apiAvailable) { alert('需要服务器模式才能同步影刀'); return; }
+  document.getElementById('ydStatus').innerHTML = '<span style="color:#0891b2;">⏳ 正在从影刀同步运行状态...</span>';
+  fetch('/api/yingdao/sync', {method:'POST'})
+    .then(r => r.json())
+    .then(d => {
+      if (!d.success) {
+        document.getElementById('ydStatus').innerHTML = '<span style="color:#d44;">❌ 同步失败：'+esc(d.message||'未知错误')+'</span>';
+        return;
+      }
+      const recs = d.records || [];
+      ydCache = {};
+      let errCount = 0, okCount = 0, autoRerunCount = 0;
+      recs.forEach(r => {
+        const local = tasks.find(t =>
+          t.process === r.process || t.process.includes(r.process) || r.process.includes(t.process)
+        );
+        r.localId = local ? local.id : null;
+        ydCache[r.process] = r;
+        if (r.status === 3 || r.status === '失败' || r.error) {
+          errCount++;
+          // 自动重跑已勾选的任务
+          if (local && local.autoRerun && r.uuid) {
+            autoRerunCount++;
+            fetch('/api/yingdao/rerun', {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({appUuid: r.uuid, robotUuid: r.robotUuid})
+            });
+          }
+        } else okCount++;
+      });
+      document.getElementById('ydStatus').innerHTML =
+        '<span style="color:#2da87a;">✅ 同步完成：'+recs.length+' 条</span> '+
+        '<span style="color:#e05560;">❌ '+errCount+' 失败</span> '+
+        (autoRerunCount>0?'<span style="color:#0891b2;">🔄 已自动重跑 '+autoRerunCount+' 个</span> ':'')+
+        '<span style="color:#888;">✅ '+okCount+' 正常</span> '+
+        (errCount>0?'<button class="btn" style="margin-left:8px;padding:3px 10px;font-size:0.7rem;" onclick="rerunAllFailed()">🔄 重跑全部失败</button>':'');
+      render();
+    }).catch(e => {
+      document.getElementById('ydStatus').innerHTML = '<span style="color:#d44;">❌ 网络错误</span>';
+    });
+}
+
+function rerunFailed(id) {
+  const rec = Object.values(ydCache).find(r => r.localId === id);
+  if (!rec) { alert('未找到对应的影刀运行记录'); return; }
+  if (!confirm('重新运行：'+rec.process+'？')) return;
+  document.getElementById('ydStatus').innerHTML = '<span style="color:#0891b2;">⏳ 正在重新运行...</span>';
+  fetch('/api/yingdao/rerun', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({appUuid: rec.uuid, robotUuid: rec.robotUuid})
+  }).then(r=>r.json()).then(d=>{
+    document.getElementById('ydStatus').innerHTML = d.success
+      ? '<span style="color:#2da87a;">✅ 已触发重新运行：'+rec.process+'</span>'
+      : '<span style="color:#d44;">❌ 重跑失败：'+esc(d.message||'')+'</span>';
+  });
+}
+
+function rerunAllFailed() {
+  const failed = Object.values(ydCache).filter(r => r.status === 3 || r.status === '失败' || r.error);
+  if (failed.length===0) { alert('没有失败的任务'); return; }
+  if (!confirm('确定重跑全部 '+failed.length+' 个失败任务？')) return;
+  let done=0;
+  document.getElementById('ydStatus').innerHTML = '<span style="color:#0891b2;">⏳ 正在重跑 '+failed.length+' 个任务...</span>';
+  failed.forEach(r => {
+    fetch('/api/yingdao/rerun', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({appUuid: r.uuid, robotUuid: r.robotUuid})
+    }).then(()=>{ done++; document.getElementById('ydStatus').innerHTML='<span style="color:#0891b2;">⏳ 已重跑 '+done+'/'+failed.length+' 个任务</span>'; });
+  });
+}
 
 // 提示框
 function shTip(e,id){

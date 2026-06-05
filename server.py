@@ -1,6 +1,7 @@
-"""RPA 调度可视化后端 — Flask REST API + Webhook 触发"""
+"""RPA 调度可视化后端 — Flask REST API + Webhook 触发 + 影刀集成"""
 import json
 import os
+import time
 import threading
 from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory
@@ -10,6 +11,13 @@ import urllib.error
 app = Flask(__name__, static_folder=".")
 DATA_FILE = "server_data.json"
 LOG_FILE = "webhook_logs.json"
+
+# 影刀 API 配置
+YINGDAO_BASE = "https://api.yingdao.com"
+YINGDAO_AK = "yz9Pq6BFnjCUgdwH@platform"
+YINGDAO_SK = "gk7VC2BzvEuNTQR6ePKtF1hpndYxHcD9"
+_yd_token = None
+_yd_token_time = 0
 
 def load_data():
     """从 JSON 文件加载任务数据"""
@@ -120,6 +128,96 @@ def get_logs():
     """获取 Webhook 触发日志"""
     logs = load_logs()
     return jsonify({"success": True, "logs": logs[-50:]})  # 最近 50 条
+
+# ========== 影刀 API 集成 ==========
+
+def yd_token():
+    """获取影刀 accessToken，缓存 1 小时"""
+    global _yd_token, _yd_token_time
+    if _yd_token and time.time() - _yd_token_time < 3500:
+        return _yd_token
+    try:
+        url = f"{YINGDAO_BASE}/oapi/token/v2/token/create?accessKeyId={YINGDAO_AK}&accessKeySecret={YINGDAO_SK}"
+        req = urllib.request.Request(url, method="GET")
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        _yd_token = data.get("data", {}).get("data", {}).get("accessToken") or data.get("data", {}).get("accessToken")
+        _yd_token_time = time.time()
+        return _yd_token
+    except Exception as e:
+        print(f"[影刀] 获取 token 失败: {e}")
+        return None
+
+def yd_api(path, body=None, method="POST"):
+    """调用影刀 API"""
+    token = yd_token()
+    if not token:
+        return {"success": False, "message": "影刀鉴权失败，请检查 API Key"}
+    try:
+        url = f"{YINGDAO_BASE}{path}"
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        data = json.dumps(body).encode("utf-8") if body else None
+        req = urllib.request.Request(url, data=data, headers=headers, method=method)
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return {"success": True, "data": json.loads(resp.read().decode("utf-8"))}
+    except urllib.error.HTTPError as e:
+        err = e.read().decode("utf-8", errors="ignore")[:500]
+        return {"success": False, "message": f"HTTP {e.code}: {err}"}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+@app.route("/api/yingdao/sync", methods=["POST"])
+def yd_sync():
+    """同步影刀调度任务运行状态"""
+    result = yd_api("/oapi/dispatch/v2/job/routine/view")
+    if not result["success"]:
+        return jsonify(result), 500
+    data = result["data"]
+    # 解析任务列表
+    records = []
+    try:
+        items = data.get("data", data).get("records", []) or data.get("data", data).get("list", [])
+        for item in items:
+            records.append({
+                "process": item.get("appName") or item.get("name", ""),
+                "pc": item.get("robotName") or item.get("computerName", ""),
+                "status": item.get("status", ""),  # 0=等待 1=运行中 2=成功 3=失败
+                "lastRun": item.get("lastRunTime") or item.get("executeTime", ""),
+                "error": item.get("errorMsg") or item.get("failReason", ""),
+                "uuid": item.get("appUuid") or item.get("uuid", ""),
+                "robotUuid": item.get("robotUuid", "")
+            })
+    except Exception as e:
+        return jsonify({"success": False, "message": f"解析失败: {e}", "raw": str(data)[:1000]}), 500
+    return jsonify({"success": True, "records": records})
+
+@app.route("/api/yingdao/rerun", methods=["POST"])
+def yd_rerun():
+    """重新运行失败的影刀任务"""
+    body = request.get_json(force=True, silent=True) or {}
+    app_uuid = body.get("appUuid")
+    robot_uuid = body.get("robotUuid")
+    if not app_uuid:
+        return jsonify({"success": False, "message": "缺少 appUuid"}), 400
+    result = yd_api("/oapi/dispatch/v2/job/start", {
+        "appUuid": app_uuid,
+        "robotUuid": robot_uuid or ""
+    })
+    return jsonify(result)
+
+@app.route("/api/yingdao/start", methods=["POST"])
+def yd_start():
+    """手动启动影刀应用"""
+    body = request.get_json(force=True, silent=True) or {}
+    app_uuid = body.get("appUuid")
+    robot_uuid = body.get("robotUuid")
+    if not app_uuid:
+        return jsonify({"success": False, "message": "缺少 appUuid"}), 400
+    result = yd_api("/oapi/dispatch/v2/job/start", {
+        "appUuid": app_uuid,
+        "robotUuid": robot_uuid or ""
+    })
+    return jsonify(result)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)
