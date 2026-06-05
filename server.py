@@ -147,7 +147,7 @@ def save_cb_log(entry):
 
 @app.route("/api/yingdao/callback", methods=["POST"])
 def yd_callback():
-    """接收影刀运行结果回调"""
+    """接收影刀运行结果回调 → 自动匹配任务 → 失败则重跑"""
     try:
         body = request.get_json(force=True, silent=True) or {}
         entry = {
@@ -155,7 +155,42 @@ def yd_callback():
             "body": body
         }
         save_cb_log(entry)
-        print(f"[回调] 收到影刀回调: {json.dumps(body, ensure_ascii=False)[:300]}")
+
+        # 解析回调：提取任务标识
+        app_name = body.get("appName") or body.get("name") or ""
+        app_uuid = body.get("appUuid") or body.get("uuid") or ""
+        robot_uuid = body.get("robotUuid") or ""
+        run_status = body.get("status") or body.get("runStatus") or ""
+        is_failed = (run_status in [3, "3", "失败", "failed", "error"]) or (body.get("success") is False)
+
+        msg = f"[回调] 收到: {app_name}, status={run_status}"
+        if is_failed:
+            msg += " (失败)"
+        print(msg)
+
+        # 如果失败，检查本地任务是否需要自动重跑
+        if is_failed and app_uuid:
+            data = load_data()
+            if data:
+                for t in data.get("tasks", []):
+                    # 匹配：appName 或 webhook URL 中包含 appUuid
+                    if t.get("autoRerun") and (
+                        t.get("process") == app_name or
+                        (t.get("webhook") and app_uuid in t.get("webhook", ""))
+                    ):
+                        print(f"[回调] 自动重跑: {t['process']}")
+                        # 调用影刀 API 重新运行
+                        threading.Thread(
+                            target=lambda: yd_api("/oapi/dispatch/v2/job/start", {
+                                "appUuid": app_uuid,
+                                "robotUuid": robot_uuid
+                            }),
+                            daemon=True
+                        ).start()
+                        entry["autoRerun"] = {"taskId": t["id"], "process": t["process"]}
+                        save_cb_log(entry)
+                        break
+
         return jsonify({"success": True, "message": "回调已接收"})
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
