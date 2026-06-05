@@ -228,7 +228,7 @@ def yd_api(path, body=None, method="POST"):
     try:
         url = f"{YINGDAO_BASE}{path}"
         headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-        data = json.dumps(body).encode("utf-8") if body else None
+        data = json.dumps(body).encode("utf-8") if body is not None else None
         req = urllib.request.Request(url, data=data, headers=headers, method=method)
         with urllib.request.urlopen(req, timeout=30) as resp:
             return {"success": True, "data": json.loads(resp.read().decode("utf-8"))}
