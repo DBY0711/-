@@ -241,25 +241,28 @@ def yd_api(path, body=None, method="POST"):
 @app.route("/api/yingdao/sync", methods=["POST"])
 def yd_sync():
     """同步影刀最新运行记录"""
-    result = yd_api("/oapi/dispatch/v2/task/newest/list")
+    result = yd_api("/oapi/dispatch/v2/task/newest/list", {})
     if not result["success"]:
         return jsonify(result), 500
     data = result["data"]
     records = []
     try:
-        items = data.get("data", data).get("list", []) or data.get("data", data).get("records", [])
-        if isinstance(items, dict): items = list(items.values())
+        # 实际返回: {"data": [{id, taskUuid, taskName, createTime, updateTime, runTimes, sourceUuid, sourceType, ...}]}
+        items = data.get("data", data)
+        if isinstance(items, dict):
+            items = items.get("list", []) or items.get("records", []) or [items]
+        if not isinstance(items, list):
+            items = [items]
         for item in items:
-            st = item.get("status", "")
             records.append({
-                "process": item.get("appName") or item.get("name", ""),
-                "pc": item.get("robotName") or item.get("computerName", ""),
-                "status": st,
-                "lastRun": item.get("startTime") or item.get("executeTime") or "",
-                "error": item.get("errorMessage") or item.get("failReason") or "",
-                "jobUuid": item.get("jobUuid") or item.get("uuid", ""),
-                "robotUuid": item.get("robotUuid") or "",
-                "scheduleUuid": item.get("scheduleUuid") or ""
+                "process": item.get("taskName") or item.get("appName") or item.get("name", ""),
+                "pc": item.get("robotName") or item.get("computerName") or "",
+                "status": item.get("status") or "",
+                "lastRun": item.get("updateTime") or item.get("lastRunTime") or "",
+                "runTimes": item.get("runTimes", 0),
+                "jobUuid": item.get("taskUuid") or item.get("jobUuid") or "",
+                "scheduleUuid": item.get("sourceUuid") or item.get("scheduleUuid") or "",
+                "sourceType": item.get("sourceType", "")
             })
     except Exception as e:
         return jsonify({"success": False, "message": f"解析失败: {e}", "raw": str(data)[:500]}), 500
