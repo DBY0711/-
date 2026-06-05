@@ -84,6 +84,13 @@ th.sortable .arrow { font-size:0.6rem; margin-left:2px; }
 .batch-bar select, .batch-bar input { padding:5px 10px; border-radius:5px; border:none; font-size:0.78rem; }
 .batch-bar .btn { background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.2); padding:5px 12px; font-size:0.75rem; }
 
+/* 分类 */
+.cat-tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:0.7rem; font-weight:600; white-space:nowrap; }
+.cat-inp { width:80px; }
+.cat-stats { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.cat-stat { padding:4px 10px; border-radius:12px; font-size:0.72rem; cursor:pointer; border:1px solid #e0e0e0; background:#fafafa; transition:all 0.15s; }
+.cat-stat:hover { border-color:#5b6abf; background:#eef0fa; }
+
 /* 提示 */
 .tooltip { position:fixed; z-index:999; background:#222; color:#fff; padding:10px 14px; border-radius:8px; font-size:0.8rem; pointer-events:none; opacity:0; transition:opacity 0.1s; }
 .tooltip.on { opacity:1; }
@@ -124,6 +131,7 @@ th.sortable .arrow { font-size:0.6rem; margin-left:2px; }
   <div class="toolbar" id="toolbar">
     <input type="text" id="fSearch" placeholder="🔍 搜索流程或电脑..." oninput="applyFilters()">
     <select id="fPc" onchange="applyFilters()"><option value="">🖥 全部电脑</option></select>
+    <select id="fCat" onchange="applyFilters()"><option value="">🏷 全部分类</option></select>
     <select id="fStatus" onchange="applyFilters()">
       <option value="">📌 全部状态</option>
       <option value="运行中">运行中</option>
@@ -142,6 +150,7 @@ th.sortable .arrow { font-size:0.6rem; margin-left:2px; }
         <th style="width:28px;"><input type="checkbox" class="cb" id="selectAllHd" onchange="toggleSelectAll()" title="全选"></th>
         <th>#</th>
         <th>流程名称</th>
+        <th class="sortable" onclick="sortTable('category')">分类 <span class="arrow"></span></th>
         <th class="sortable" onclick="sortTable('pc')">电脑 <span class="arrow"></span></th>
         <th class="sortable" onclick="sortTable('start')">开始 <span class="arrow"></span></th>
         <th>结束</th>
@@ -153,7 +162,9 @@ th.sortable .arrow { font-size:0.6rem; margin-left:2px; }
     </table>
   </div>
   <!-- 批量操作栏 -->
-  <div class="batch-bar" id="batchBar">
+  <datalist id="catList"></datalist>
+<div class="cat-stats" id="catStats"></div>
+<div class="batch-bar" id="batchBar">
     <span id="batchCount">已选 0 项</span>
     <select id="batchStatus" onchange="batchSetStatus(this.value);this.value='';">
       <option value="">改状态...</option>
@@ -967,7 +978,7 @@ function saveData() {
 }
 
 let zoom = 2;
-let filters = { search: '', pc: '', status: '' };
+let filters = { search: '', pc: '', category: '', status: '' };
 let sortBy = 'start', sortAsc = true;
 let selected = new Set();
 
@@ -976,6 +987,7 @@ function filteredTasks() {
     const s = filters.search.toLowerCase();
     if (s && !t.process.toLowerCase().includes(s) && !t.pc.toLowerCase().includes(s)) return false;
     if (filters.pc && t.pc !== filters.pc) return false;
+    if (filters.category && t.category !== filters.category) return false;
     if (filters.status && t.status !== filters.status) return false;
     return true;
   });
@@ -983,6 +995,7 @@ function filteredTasks() {
     let va, vb;
     if (sortBy === 'start') { va = t2m(a.start); vb = t2m(b.start); }
     else if (sortBy === 'runtime') { va = a.runtime || 0; vb = b.runtime || 0; }
+    else if (sortBy === 'category') { va = a.category||''; vb = b.category||''; }
     else if (sortBy === 'pc') { va = a.pc; vb = b.pc; }
     else if (sortBy === 'status') { va = a.status; vb = b.status; }
     else { va = a.process; vb = b.process; }
@@ -995,6 +1008,7 @@ function filteredTasks() {
 function applyFilters() {
   filters.search = document.getElementById('fSearch').value;
   filters.pc = document.getElementById('fPc').value;
+  filters.category = document.getElementById('fCat').value;
   filters.status = document.getElementById('fStatus').value;
   selected.clear();
   render();
@@ -1002,6 +1016,7 @@ function applyFilters() {
 function clearFilters() {
   document.getElementById('fSearch').value = '';
   document.getElementById('fPc').value = '';
+  document.getElementById('fCat').value = '';
   document.getElementById('fStatus').value = '';
   applyFilters();
 }
@@ -1088,8 +1103,9 @@ function render() {
       '<td><input type="checkbox" class="cb" onchange="toggleSel('+t.id+')"'+chk+'></td>'+
       '<td>'+(i+1)+'</td>'+
       '<td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+c+';margin-right:5px;"></span>'+
-      '<input class="inp" value="'+esc(t.process)+'" onchange="upd('+t.id+',\'process\',this.value)" style="width:160px;font-weight:500;"></td>'+
-      '<td><input class="inp" value="'+esc(t.pc)+'" onchange="upd('+t.id+',\'pc\',this.value)" style="width:100px;"></td>'+
+      '<input class="inp" value="'+esc(t.process)+'" onchange="upd('+t.id+',\'process\',this.value)" style="width:150px;font-weight:500;"></td>'+
+      '<td><input class="inp cat-inp" list="catList" value="'+(t.category||'')+'" onchange="upd('+t.id+',\'category\',this.value)" placeholder="分类"></td>'+
+      '<td><input class="inp" value="'+esc(t.pc)+'" onchange="upd('+t.id+',\'pc\',this.value)" style="width:95px;"></td>'+
       '<td><input class="inp tm" type="time" value="'+t.start+'" onchange="upd('+t.id+',\'start\',this.value)"></td>'+
       '<td><input class="inp tm" type="time" value="'+t.end+'" onchange="upd('+t.id+',\'end\',this.value)"></td>'+
       '<td><input class="inp rt" type="number" value="'+(t.runtime||'')+'" placeholder="秒" min="0" onblur="upd('+t.id+',\'runtime\',parseInt(this.value)||0)" onkeydown="if(event.key===\'Enter\')this.blur()"></td>'+
@@ -1102,6 +1118,16 @@ function render() {
   }).join('') || '<tr><td colspan="12" style="text-align:center;padding:40px;color:#ccc;">无匹配结果</td></tr>';
 
   // 筛选信息 + 批量栏
+  // 分类统计 + 数据列表
+  const catMap = {};
+  tasks.forEach(t => { const c = t.category||'未分类'; catMap[c] = (catMap[c]||0)+1; });
+  document.getElementById('catStats').innerHTML = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).map(([c,n])=>
+    '<span class="cat-stat" onclick="document.getElementById(\'fCat\').value=\''+esc(c)+'\';applyFilters();" title="筛选此分类">🏷 '+esc(c)+' <b>'+n+'</b></span>'
+  ).join('');
+  const cats = Object.keys(catMap).filter(c=>c!=='未分类').sort();
+  document.getElementById('catList').innerHTML = cats.map(c=>'<option value="'+esc(c)+'">').join('');
+  document.getElementById('fCat').innerHTML = '<option value="">🏷 全部分类</option>'+cats.map(c=>'<option'+(c===filters.category?' selected':'')+'>'+c+'</option>').join('');
+
   document.getElementById('filterInfo').textContent = '显示 '+filtered.length+' / '+tasks.length+' 条';
   const bar = document.getElementById('batchBar');
   if (selected.size > 0) { bar.classList.add('show'); document.getElementById('batchCount').textContent = '已选 '+selected.size+' 项'; }
