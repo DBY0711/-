@@ -40,7 +40,7 @@ body { font-family: "PingFang SC","Microsoft YaHei","Segoe UI",sans-serif; backg
 .gantt-label { width:150px; flex-shrink:0; padding:10px 12px; font-size:0.8rem; font-weight:600; border-right:2px solid #f0f0f0; display:flex; align-items:center; gap:8px; position:sticky; left:0; background:inherit; }
 .gantt-label .dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
 .gantt-track { flex:1; position:relative; min-height:60px; }
-.gantt-bar { position:absolute; top:6px; bottom:6px; min-width:4px; border-radius:3px; cursor:pointer; display:flex; align-items:center; padding:0 5px; overflow:visible; white-space:nowrap; font-size:0.68rem; color:#fff; font-weight:500; z-index:2; box-shadow:0 1px 2px rgba(0,0,0,0.1); transition:filter 0.12s; }
+.gantt-bar { position:absolute; top:6px; bottom:6px; border-radius:3px; cursor:pointer; display:flex; align-items:center; padding:0 5px; overflow:visible; white-space:nowrap; font-size:0.68rem; color:#fff; font-weight:500; z-index:2; box-shadow:0 1px 2px rgba(0,0,0,0.1); transition:filter 0.12s; }
 .gantt-bar:hover { filter:brightness(1.15); z-index:20; }
 
 /* 表格 */
@@ -79,7 +79,15 @@ tr:hover td { background:#fafcfd; }
 <div class="stats" id="stats"></div>
 
 <div class="card">
-  <h2>📅 每日甘特图 <span style="font-weight:400;font-size:0.73rem;color:#999;">（悬停看详情 · 双击改名称 · 运行时间在表格填写）</span></h2>
+  <h2>📅 每日甘特图
+    <span style="font-weight:400;font-size:0.73rem;color:#999;margin-left:8px;">悬停看详情 · 双击改名称</span>
+    <span style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+      <button class="btn" onclick="zoomOut()" title="缩小">🔍−</button>
+      <input type="range" id="zoomSlider" min="1" max="10" value="2" oninput="setZoom(this.value)" style="width:100px;">
+      <button class="btn" onclick="zoomIn()" title="放大">🔍+</button>
+      <span id="zoomLabel" style="font-size:0.75rem;font-weight:600;min-width:36px;">2×</span>
+    </span>
+  </h2>
   <div class="gantt-box"><div class="gantt" id="gantt"></div></div>
 </div>
 
@@ -831,6 +839,16 @@ const DEMO = [
 
 let tasks = JSON.parse(JSON.stringify(DEMO));
 let nid = 81;
+let zoom = 2; // 缩放级别：1=24h全览, 2=12h, 更大=更细
+
+function setZoom(v) {
+  zoom = parseInt(v);
+  document.getElementById('zoomSlider').value = zoom;
+  document.getElementById('zoomLabel').textContent = zoom+'×';
+  render();
+}
+function zoomIn() { if(zoom<10) setZoom(zoom+1); }
+function zoomOut() { if(zoom>1) setZoom(zoom-1); }
 
 // ========== 工具 ==========
 const t2m = s => { const [h,m]=s.split(':').map(Number); return h*60+m; };
@@ -852,21 +870,30 @@ function render() {
     '<div class="stat"><span style="font-size:1.6rem;">🖥</span><div><div class="n">'+pcs.size+'</div><div class="l">电脑数</div></div></div>'+
     '<div class="stat"><span style="font-size:1.6rem;">🔀</span><div><div class="n">'+prs.size+'</div><div class="l">流程数</div></div></div>';
 
-  // 甘特图（仅活跃任务）
+  // 甘特图（仅活跃任务）+ 缩放
   const grp={}; active.forEach(t=>{ if(!grp[t.pc])grp[t.pc]=[]; grp[t.pc].push(t); });
   const plist=Object.keys(grp).sort();
-  let g='<div class="gantt-head">';
-  for(let h=0;h<24;h++) g+='<span>'+String(h).padStart(2,'0')+':00</span>';
+  const zw = 100 * zoom; // 总宽度百分比基数
+  // 时间头：根据缩放级别显示不同粒度
+  let g='<div class="gantt-head" style="min-width:'+(zoom*950)+'px;">';
+  if(zoom<=2){
+    for(let h=0;h<24;h++) g+='<span>'+String(h).padStart(2,'0')+':00</span>';
+  } else {
+    for(let h=0;h<24;h++){
+      g+='<span>'+String(h).padStart(2,'0')+':00</span>';
+      g+='<span style="font-size:0.55rem;">'+String(h).padStart(2,'0')+':30</span>';
+    }
+  }
   g+='</div>';
   plist.forEach((pcName,i)=>{
     const items=grp[pcName].sort((a,b)=>t2m(a.start)-t2m(b.start));
-    g+='<div class="gantt-row"><div class="gantt-label"><span class="dot" style="background:'+PC_COLORS[i%7]+';"></span>'+esc(pcName)+'</div><div class="gantt-track">';
+    g+='<div class="gantt-row" style="min-width:'+(zoom*950)+'px;"><div class="gantt-label"><span class="dot" style="background:'+PC_COLORS[i%7]+';"></span>'+esc(pcName)+'</div><div class="gantt-track">';
     items.forEach(task=>{
       const s=t2m(task.start);
-      const lp=(s/1440)*100;
-      // 用秒直接算宽度，精确反映运行时间占比（24h = 86400s）
+      // 位置和宽度都乘缩放倍数，无最小值限制
+      const lp=(s/1440)*zw;
       const rt=task.runtime||0;
-      const wp=Math.max(rt/86400*100, 0.12);
+      const wp=(rt/86400)*zw;
       const c=pc(task.process);
       g+='<div class="gantt-bar" style="left:'+lp+'%;width:'+wp+'%;background:'+c+';" '+
         'onmouseenter="shTip(event,'+task.id+')" onmouseleave="hiTip()" ondblclick="edProc('+task.id+')" '+
