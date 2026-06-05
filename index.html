@@ -862,13 +862,16 @@ function render() {
     const items=grp[pcName].sort((a,b)=>t2m(a.start)-t2m(b.start));
     g+='<div class="gantt-row"><div class="gantt-label"><span class="dot" style="background:'+PC_COLORS[i%7]+';"></span>'+esc(pcName)+'</div><div class="gantt-track">';
     items.forEach(task=>{
-      const s=t2m(task.start), e=t2m(task.end);
-      const lp=(s/1440)*100, wp=Math.max(((e-s)/1440)*100, 0.35);
-      const c=pc(task.process), rt=task.runtime||0;
+      const s=t2m(task.start);
+      const lp=(s/1440)*100;
+      // 用秒直接算宽度，精确反映运行时间占比（24h = 86400s）
+      const rt=task.runtime||0;
+      const wp=Math.max(rt/86400*100, 0.12);
+      const c=pc(task.process);
       g+='<div class="gantt-bar" style="left:'+lp+'%;width:'+wp+'%;background:'+c+';" '+
         'onmouseenter="shTip(event,'+task.id+')" onmouseleave="hiTip()" ondblclick="edProc('+task.id+')" '+
         'title="'+esc(task.process)+' | '+task.start+'-'+task.end+' | '+fm(rt)+'">'+
-        (wp>=1.5?esc(task.process):'')+'</div>';
+        (wp>=1?esc(task.process):'')+'</div>';
     });
     g+='</div></div>';
   });
@@ -896,7 +899,7 @@ function upd(id, field, value) {
   const t=tasks.find(x=>x.id===id); if(!t) return;
   t[field]=value;
   if(field==='start'||field==='end'){ const s=t2m(t.start),e=t2m(t.end); t.runtime=Math.max(0,(e-s)*60); }
-  if(field==='runtime') t.end=m2t(t2m(t.start)+Math.floor(value/60));
+  if(field==='runtime') t.end=m2t(t2m(t.start)+Math.ceil(value/60));
   render();
 }
 
