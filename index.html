@@ -838,8 +838,19 @@ const DEMO = [
   }
 ];
 
-let tasks = JSON.parse(JSON.stringify(DEMO));
-let nid = 81;
+// 从 localStorage 加载，没有则用演示数据
+let tasks, nid;
+const saved = localStorage.getItem('rpa_tasks');
+if (saved) {
+  try { const d = JSON.parse(saved); tasks = d.tasks; nid = d.nid; }
+  catch(e) { tasks = JSON.parse(JSON.stringify(DEMO)); nid = 81; }
+} else {
+  tasks = JSON.parse(JSON.stringify(DEMO));
+  nid = 81;
+}
+function saveData() {
+  localStorage.setItem('rpa_tasks', JSON.stringify({tasks, nid}));
+}
 let zoom = 2; // 缩放级别：1=24h全览, 2=12h, 更大=更细
 
 function setZoom(v) {
@@ -920,6 +931,7 @@ function render() {
       '<td><select class="sel" onchange="upd('+t.id+',\'status\',this.value)"><option'+(t.status==='运行中'?' selected':'')+'>运行中</option><option'+(t.status==='已暂停'?' selected':'')+'>已暂停</option><option'+(t.status==='已停止'?' selected':'')+'>已停止</option></select></td>'+
       '<td><button class="btn red" style="padding:3px 8px;font-size:0.7rem;" onclick="del('+t.id+')">🗑</button></td></tr>';
   }).join('') || '<tr><td colspan="8" style="text-align:center;padding:40px;color:#ccc;">暂无数据</td></tr>';
+  saveData();
 }
 
 // ========== 操作 ==========
