@@ -156,40 +156,40 @@ def yd_callback():
         }
         save_cb_log(entry)
 
-        # 解析回调：提取任务标识
-        app_name = body.get("appName") or body.get("name") or ""
-        app_uuid = body.get("appUuid") or body.get("uuid") or ""
-        robot_uuid = body.get("robotUuid") or ""
-        run_status = body.get("status") or body.get("runStatus") or ""
-        is_failed = (run_status in [3, "3", "失败", "failed", "error"]) or (body.get("success") is False)
+        # 解析回调：影刀回调含 task 级别 status + jobList 数组
+        # 实际格式: {"dataType":"task","taskUuid":"...","status":"finish","jobList":[{...}]}
+        task_status = body.get("status", "")
+        job_list = body.get("jobList", [body])  # 兼容无 jobList 的扁平格式
 
-        msg = f"[回调] 收到: {app_name}, status={run_status}"
-        if is_failed:
-            msg += " (失败)"
-        print(msg)
+        for job in job_list:
+            app_name = job.get("robotName") or job.get("appName") or ""
+            app_uuid = job.get("robotUuid") or job.get("appUuid") or ""
+            job_uuid = job.get("jobUuid") or body.get("jobUuid") or ""
+            run_status = job.get("status") or task_status
+            is_failed = run_status in ["error", "fail", "timeout", "stopped", "cancel"]
 
-        # 如果失败，检查本地任务是否需要自动重跑
-        if is_failed and app_uuid:
-            data = load_data()
-            if data:
-                for t in data.get("tasks", []):
-                    # 匹配：appName 或 webhook URL 中包含 appUuid
-                    if t.get("autoRerun") and (
-                        t.get("process") == app_name or
-                        (t.get("webhook") and app_uuid in t.get("webhook", ""))
-                    ):
-                        print(f"[回调] 自动重跑: {t['process']}")
-                        # 调用影刀 API 重新运行
-                        threading.Thread(
-                            target=lambda: yd_api("/oapi/dispatch/v2/job/start", {
-                                "appUuid": app_uuid,
-                                "robotUuid": robot_uuid
-                            }),
-                            daemon=True
-                        ).start()
-                        entry["autoRerun"] = {"taskId": t["id"], "process": t["process"]}
-                        save_cb_log(entry)
-                        break
+            msg = f"[回调] {app_name}: {run_status}"
+            if is_failed: msg += " ❌"
+            print(msg)
+
+            # 失败则检查是否自动重跑
+            if is_failed and job_uuid:
+                data = load_data()
+                if data:
+                    for t in data.get("tasks", []):
+                        if t.get("autoRerun") and (
+                            t.get("process") == app_name or
+                            t.get("robotName", "").lower() in app_name.lower() or
+                            app_name.lower() in t.get("process", "").lower()
+                        ):
+                            print(f"[回调] 自动重跑: {t['process']} → job/retry {job_uuid}")
+                            threading.Thread(
+                                target=lambda j=job_uuid: yd_api("/oapi/dispatch/v2/job/retry", {"jobUuid": j}),
+                                daemon=True
+                            ).start()
+                            entry["autoRerun"] = {"taskId": t["id"], "process": t["process"], "jobUuid": job_uuid}
+                            save_cb_log(entry)
+                            break
 
         return jsonify({"success": True, "message": "回调已接收"})
     except Exception as e:
@@ -240,55 +240,53 @@ def yd_api(path, body=None, method="POST"):
 
 @app.route("/api/yingdao/sync", methods=["POST"])
 def yd_sync():
-    """同步影刀调度任务运行状态"""
-    result = yd_api("/oapi/dispatch/v2/job/routine/view")
+    """同步影刀最新运行记录"""
+    result = yd_api("/oapi/dispatch/v2/task/newest/list")
     if not result["success"]:
         return jsonify(result), 500
     data = result["data"]
-    # 解析任务列表
     records = []
     try:
-        items = data.get("data", data).get("records", []) or data.get("data", data).get("list", [])
+        items = data.get("data", data).get("list", []) or data.get("data", data).get("records", [])
+        if isinstance(items, dict): items = list(items.values())
         for item in items:
+            st = item.get("status", "")
             records.append({
                 "process": item.get("appName") or item.get("name", ""),
                 "pc": item.get("robotName") or item.get("computerName", ""),
-                "status": item.get("status", ""),  # 0=等待 1=运行中 2=成功 3=失败
-                "lastRun": item.get("lastRunTime") or item.get("executeTime", ""),
-                "error": item.get("errorMsg") or item.get("failReason", ""),
-                "uuid": item.get("appUuid") or item.get("uuid", ""),
-                "robotUuid": item.get("robotUuid", "")
+                "status": st,
+                "lastRun": item.get("startTime") or item.get("executeTime") or "",
+                "error": item.get("errorMessage") or item.get("failReason") or "",
+                "jobUuid": item.get("jobUuid") or item.get("uuid", ""),
+                "robotUuid": item.get("robotUuid") or "",
+                "scheduleUuid": item.get("scheduleUuid") or ""
             })
     except Exception as e:
-        return jsonify({"success": False, "message": f"解析失败: {e}", "raw": str(data)[:1000]}), 500
+        return jsonify({"success": False, "message": f"解析失败: {e}", "raw": str(data)[:500]}), 500
     return jsonify({"success": True, "records": records})
 
 @app.route("/api/yingdao/rerun", methods=["POST"])
 def yd_rerun():
-    """重新运行失败的影刀任务"""
+    """重跑失败的影刀任务（使用 job/retry）"""
     body = request.get_json(force=True, silent=True) or {}
-    app_uuid = body.get("appUuid")
-    robot_uuid = body.get("robotUuid")
-    if not app_uuid:
-        return jsonify({"success": False, "message": "缺少 appUuid"}), 400
-    result = yd_api("/oapi/dispatch/v2/job/start", {
-        "appUuid": app_uuid,
-        "robotUuid": robot_uuid or ""
-    })
+    job_uuid = body.get("jobUuid")
+    if not job_uuid:
+        return jsonify({"success": False, "message": "缺少 jobUuid"}), 400
+    result = yd_api("/oapi/dispatch/v2/job/retry", {"jobUuid": job_uuid})
     return jsonify(result)
 
 @app.route("/api/yingdao/start", methods=["POST"])
 def yd_start():
-    """手动启动影刀应用"""
+    """启动影刀任务（调度任务）"""
     body = request.get_json(force=True, silent=True) or {}
-    app_uuid = body.get("appUuid")
-    robot_uuid = body.get("robotUuid")
-    if not app_uuid:
-        return jsonify({"success": False, "message": "缺少 appUuid"}), 400
-    result = yd_api("/oapi/dispatch/v2/job/start", {
-        "appUuid": app_uuid,
-        "robotUuid": robot_uuid or ""
-    })
+    schedule_uuid = body.get("scheduleUuid")
+    if schedule_uuid:
+        result = yd_api("/oapi/dispatch/v2/task/start", {"scheduleUuid": schedule_uuid})
+    else:
+        robot_uuid = body.get("robotUuid")
+        if not robot_uuid:
+            return jsonify({"success": False, "message": "需要 scheduleUuid 或 robotUuid"}), 400
+        result = yd_api("/oapi/dispatch/v2/job/start", {"robotUuid": robot_uuid})
     return jsonify(result)
 
 if __name__ == "__main__":

@@ -1340,30 +1340,30 @@ function syncYingdao() {
 
 function rerunFailed(id) {
   const rec = Object.values(ydCache).find(r => r.localId === id);
-  if (!rec) { alert('未找到对应的影刀运行记录'); return; }
+  if (!rec || !rec.jobUuid) { alert('未找到可重跑的运行记录（需要 jobUuid）'); return; }
   if (!confirm('重新运行：'+rec.process+'？')) return;
-  document.getElementById('ydStatus').innerHTML = '<span style="color:#0891b2;">⏳ 正在重新运行...</span>';
+  document.getElementById('ydStatus').innerHTML = '<span style="color:#0891b2;">⏳ 正在重跑...</span>';
   fetch('/api/yingdao/rerun', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({appUuid: rec.uuid, robotUuid: rec.robotUuid})
+    body: JSON.stringify({jobUuid: rec.jobUuid})
   }).then(r=>r.json()).then(d=>{
     document.getElementById('ydStatus').innerHTML = d.success
-      ? '<span style="color:#2da87a;">✅ 已触发重新运行：'+rec.process+'</span>'
+      ? '<span style="color:#2da87a;">✅ 已重跑：'+rec.process+'</span>'
       : '<span style="color:#d44;">❌ 重跑失败：'+esc(d.message||'')+'</span>';
   });
 }
 
 function rerunAllFailed() {
-  const failed = Object.values(ydCache).filter(r => r.status === 3 || r.status === '失败' || r.error);
-  if (failed.length===0) { alert('没有失败的任务'); return; }
+  const failed = Object.values(ydCache).filter(r => r.jobUuid && (r.status==='fail'||r.status==='error'||r.status==='timeout'));
+  if (failed.length===0) { alert('没有可重跑的失败任务（需要 jobUuid 且状态为 fail/error/timeout）'); return; }
   if (!confirm('确定重跑全部 '+failed.length+' 个失败任务？')) return;
   let done=0;
-  document.getElementById('ydStatus').innerHTML = '<span style="color:#0891b2;">⏳ 正在重跑 '+failed.length+' 个任务...</span>';
+  document.getElementById('ydStatus').innerHTML = '<span style="color:#0891b2;">⏳ 正在重跑 '+failed.length+' 个...</span>';
   failed.forEach(r => {
     fetch('/api/yingdao/rerun', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({appUuid: r.uuid, robotUuid: r.robotUuid})
-    }).then(()=>{ done++; document.getElementById('ydStatus').innerHTML='<span style="color:#0891b2;">⏳ 已重跑 '+done+'/'+failed.length+' 个任务</span>'; });
+      body: JSON.stringify({jobUuid: r.jobUuid})
+    }).then(()=>{ done++; document.getElementById('ydStatus').innerHTML='<span style="color:#0891b2;">⏳ 已重跑 '+done+'/'+failed.length+' 个</span>'; });
   });
 }
 
