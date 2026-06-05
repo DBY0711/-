@@ -35,12 +35,12 @@ body { font-family: "PingFang SC","Microsoft YaHei","Segoe UI",sans-serif; backg
 .gantt { min-width:950px; }
 .gantt-head { display:flex; padding-left:150px; height:28px; border-bottom:1px solid #eee; }
 .gantt-head span { flex:1; text-align:center; font-size:0.65rem; color:#999; line-height:28px; border-left:1px solid #f0f0f0; }
-.gantt-row { display:flex; border-bottom:1px solid #f8f8f8; min-height:46px; }
+.gantt-row { display:flex; border-bottom:1px solid #f8f8f8; min-height:60px; }
 .gantt-row:hover { background:#fafbfd; }
 .gantt-label { width:150px; flex-shrink:0; padding:10px 12px; font-size:0.8rem; font-weight:600; border-right:2px solid #f0f0f0; display:flex; align-items:center; gap:8px; position:sticky; left:0; background:inherit; }
 .gantt-label .dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
-.gantt-track { flex:1; position:relative; min-height:46px; }
-.gantt-bar { position:absolute; top:5px; bottom:5px; border-radius:4px; cursor:pointer; display:flex; align-items:center; padding:0 8px; overflow:hidden; white-space:nowrap; font-size:0.7rem; color:#fff; font-weight:500; z-index:2; box-shadow:0 1px 2px rgba(0,0,0,0.1); transition:filter 0.12s; }
+.gantt-track { flex:1; position:relative; min-height:60px; }
+.gantt-bar { position:absolute; top:6px; bottom:6px; min-width:4px; border-radius:3px; cursor:pointer; display:flex; align-items:center; padding:0 5px; overflow:visible; white-space:nowrap; font-size:0.68rem; color:#fff; font-weight:500; z-index:2; box-shadow:0 1px 2px rgba(0,0,0,0.1); transition:filter 0.12s; }
 .gantt-bar:hover { filter:brightness(1.15); z-index:20; }
 
 /* 表格 */
@@ -111,8 +111,8 @@ const DEMO = [
     "process": "清楚缓存记录",
     "pc": "rpa4@szlc",
     "start": "22:00",
-    "end": "22:30",
-    "runtime": 1800,
+    "end": "22:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 1
   },
@@ -120,8 +120,8 @@ const DEMO = [
     "process": "优惠券巡检",
     "pc": "rpa3@szlc",
     "start": "01:30",
-    "end": "02:00",
-    "runtime": 1800,
+    "end": "01:35",
+    "runtime": 300,
     "status": "运行中",
     "id": 2
   },
@@ -129,8 +129,8 @@ const DEMO = [
     "process": "打样纸样保密抓取",
     "pc": "rpa8@szlc",
     "start": "00:30",
-    "end": "01:00",
-    "runtime": 1800,
+    "end": "00:35",
+    "runtime": 300,
     "status": "运行中",
     "id": 3
   },
@@ -138,8 +138,8 @@ const DEMO = [
     "process": "各平台-店铺综合评分抓取-新流程",
     "pc": "rpa3@szlc",
     "start": "17:00",
-    "end": "17:30",
-    "runtime": 1800,
+    "end": "17:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 4
   },
@@ -147,8 +147,8 @@ const DEMO = [
     "process": "视频号-直播-数据大屏",
     "pc": "rpa7@szlc",
     "start": "10:00",
-    "end": "10:30",
-    "runtime": 1800,
+    "end": "10:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 5
   },
@@ -156,8 +156,8 @@ const DEMO = [
     "process": "抖音加热-短视频",
     "pc": "rpa7@szlc",
     "start": "06:00",
-    "end": "06:30",
-    "runtime": 1800,
+    "end": "06:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 6
   },
@@ -165,8 +165,8 @@ const DEMO = [
     "process": "快手-生意通-短视频-短视频列表",
     "pc": "rpa7@szlc",
     "start": "17:00",
-    "end": "17:30",
-    "runtime": 1800,
+    "end": "17:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 7
   },
@@ -174,8 +174,8 @@ const DEMO = [
     "process": "视频号_加热平台_直播订单_标准",
     "pc": "rpa6@szlc",
     "start": "10:20",
-    "end": "10:50",
-    "runtime": 1800,
+    "end": "10:25",
+    "runtime": 300,
     "status": "运行中",
     "id": 8
   },
@@ -183,8 +183,8 @@ const DEMO = [
     "process": "视频号-加热平台-加热数据",
     "pc": "rpa6@szlc",
     "start": "10:00",
-    "end": "10:30",
-    "runtime": 1800,
+    "end": "10:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 9
   },
@@ -192,8 +192,8 @@ const DEMO = [
     "process": "拼多多-订单导出-近3个月",
     "pc": "rpa7@szlc",
     "start": "01:00",
-    "end": "01:30",
-    "runtime": 1800,
+    "end": "01:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 10
   },
@@ -201,8 +201,8 @@ const DEMO = [
     "process": "拼多多-售后导出",
     "pc": "rpa7@szlc",
     "start": "01:30",
-    "end": "02:00",
-    "runtime": 1800,
+    "end": "01:35",
+    "runtime": 300,
     "status": "运行中",
     "id": 11
   },
@@ -210,8 +210,8 @@ const DEMO = [
     "process": "快手-商品卡-商品卡概览-商品列表",
     "pc": "rpa3@szlc",
     "start": "13:10",
-    "end": "13:40",
-    "runtime": 1800,
+    "end": "13:15",
+    "runtime": 300,
     "status": "运行中",
     "id": 12
   },
@@ -219,8 +219,8 @@ const DEMO = [
     "process": "快手-直播-直播列表-大屏复盘",
     "pc": "rpa3@szlc",
     "start": "13:20",
-    "end": "13:50",
-    "runtime": 1800,
+    "end": "13:25",
+    "runtime": 300,
     "status": "运行中",
     "id": 13
   },
@@ -228,8 +228,8 @@ const DEMO = [
     "process": "抖音-直播-直播列表-直播大屏",
     "pc": "rpa3@szlc",
     "start": "13:30",
-    "end": "14:00",
-    "runtime": 1800,
+    "end": "13:35",
+    "runtime": 300,
     "status": "运行中",
     "id": 14
   },
@@ -237,8 +237,8 @@ const DEMO = [
     "process": "视频号-视频号助手-数据中心-直播数据-单场数据（更新后）",
     "pc": "rpa3@szlc",
     "start": "11:00",
-    "end": "11:30",
-    "runtime": 1800,
+    "end": "11:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 15
   },
@@ -246,8 +246,8 @@ const DEMO = [
     "process": "抖音-商品卡-商品卡明细-商品卡列表",
     "pc": "rpa6@szlc",
     "start": "13:20",
-    "end": "13:50",
-    "runtime": 1800,
+    "end": "13:25",
+    "runtime": 300,
     "status": "运行中",
     "id": 16
   },
@@ -255,8 +255,8 @@ const DEMO = [
     "process": "小红书-商品-商品列表",
     "pc": "rpa8@szlc",
     "start": "07:00",
-    "end": "07:30",
-    "runtime": 1800,
+    "end": "07:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 17
   },
@@ -264,8 +264,8 @@ const DEMO = [
     "process": "挂车视频表同步到数据库",
     "pc": "rpa3@szlc",
     "start": "02:00",
-    "end": "02:30",
-    "runtime": 1800,
+    "end": "02:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 18
   },
@@ -273,8 +273,8 @@ const DEMO = [
     "process": "视频号-商品管理-商品列表",
     "pc": "rpa3@szlc",
     "start": "02:40",
-    "end": "03:10",
-    "runtime": 1800,
+    "end": "02:45",
+    "runtime": 300,
     "status": "运行中",
     "id": 19
   },
@@ -282,8 +282,8 @@ const DEMO = [
     "process": "款式总表4.0和聚水潭商品资料-同步到数据库",
     "pc": "rpa7@szlc",
     "start": "07:00",
-    "end": "07:30",
-    "runtime": 1800,
+    "end": "07:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 20
   },
@@ -291,8 +291,8 @@ const DEMO = [
     "process": "小红书-数据-笔记数据-商品笔记明细",
     "pc": "rpa3@szlc",
     "start": "10:00",
-    "end": "10:30",
-    "runtime": 1800,
+    "end": "10:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 21
   },
@@ -300,8 +300,8 @@ const DEMO = [
     "process": "视频号-用户ID信息提取-接口版",
     "pc": "rpa3@szlc",
     "start": "00:00",
-    "end": "00:30",
-    "runtime": 1800,
+    "end": "00:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 22
   },
@@ -309,8 +309,8 @@ const DEMO = [
     "process": "抖音-罗盘-数据工厂-商品流量-交易明细",
     "pc": "rpa6@szlc",
     "start": "13:30",
-    "end": "14:00",
-    "runtime": 1800,
+    "end": "13:35",
+    "runtime": 300,
     "status": "运行中",
     "id": 23
   },
@@ -318,8 +318,8 @@ const DEMO = [
     "process": "小红书-商品数据-商品总览-商品列表",
     "pc": "rpa3@szlc",
     "start": "13:00",
-    "end": "13:30",
-    "runtime": 1800,
+    "end": "13:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 24
   },
@@ -327,8 +327,8 @@ const DEMO = [
     "process": "抖店-商品评价管理",
     "pc": "rpa3@szlc",
     "start": "15:20",
-    "end": "15:50",
-    "runtime": 1800,
+    "end": "15:25",
+    "runtime": 300,
     "status": "运行中",
     "id": 25
   },
@@ -336,8 +336,8 @@ const DEMO = [
     "process": "小红书-商品评价管理",
     "pc": "rpa3@szlc",
     "start": "15:30",
-    "end": "16:00",
-    "runtime": 1800,
+    "end": "15:35",
+    "runtime": 300,
     "status": "运行中",
     "id": 26
   },
@@ -345,8 +345,8 @@ const DEMO = [
     "process": "快手-商品评价管理",
     "pc": "rpa3@szlc",
     "start": "15:40",
-    "end": "16:10",
-    "runtime": 1800,
+    "end": "15:45",
+    "runtime": 300,
     "status": "运行中",
     "id": 27
   },
@@ -354,8 +354,8 @@ const DEMO = [
     "process": "拼多多-商品评价管理",
     "pc": "rpa7@szlc",
     "start": "06:10",
-    "end": "06:40",
-    "runtime": 1800,
+    "end": "06:15",
+    "runtime": 300,
     "status": "运行中",
     "id": 28
   },
@@ -363,8 +363,8 @@ const DEMO = [
     "process": "百度优选-直播数据-数据概览-每日明细",
     "pc": "rpa3@szlc",
     "start": "08:00",
-    "end": "08:30",
-    "runtime": 1800,
+    "end": "08:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 29
   },
@@ -372,8 +372,8 @@ const DEMO = [
     "process": "百度优选-直播数据-直播明细-数据大屏",
     "pc": "rpa3@szlc",
     "start": "11:30",
-    "end": "12:00",
-    "runtime": 1800,
+    "end": "11:35",
+    "runtime": 300,
     "status": "运行中",
     "id": 30
   },
@@ -381,8 +381,8 @@ const DEMO = [
     "process": "有赞-订单导出",
     "pc": "rpa5@szlc",
     "start": "00:40",
-    "end": "01:10",
-    "runtime": 1800,
+    "end": "00:45",
+    "runtime": 300,
     "status": "运行中",
     "id": 31
   },
@@ -390,8 +390,8 @@ const DEMO = [
     "process": "有赞-售后导出",
     "pc": "rpa5@szlc",
     "start": "01:00",
-    "end": "01:30",
-    "runtime": 1800,
+    "end": "01:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 32
   },
@@ -399,8 +399,8 @@ const DEMO = [
     "process": "有赞-商品管理",
     "pc": "rpa5@szlc",
     "start": "01:30",
-    "end": "02:00",
-    "runtime": 1800,
+    "end": "01:35",
+    "runtime": 300,
     "status": "运行中",
     "id": 33
   },
@@ -408,8 +408,8 @@ const DEMO = [
     "process": "淘宝C店-售后导出",
     "pc": "rpa5@szlc",
     "start": "00:00",
-    "end": "00:30",
-    "runtime": 1800,
+    "end": "00:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 34
   },
@@ -417,8 +417,8 @@ const DEMO = [
     "process": "抖音-罗盘-数据工厂-短视频明细",
     "pc": "rpa8@szlc",
     "start": "09:00",
-    "end": "09:30",
-    "runtime": 1800,
+    "end": "09:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 35
   },
@@ -426,8 +426,8 @@ const DEMO = [
     "process": "有赞-用户ID信息提取",
     "pc": "rpa5@szlc",
     "start": "02:00",
-    "end": "02:30",
-    "runtime": 1800,
+    "end": "02:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 36
   },
@@ -435,8 +435,8 @@ const DEMO = [
     "process": "淘宝C店-商品列表-更新后",
     "pc": "rpa8@szlc",
     "start": "01:00",
-    "end": "01:30",
-    "runtime": 1800,
+    "end": "01:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 37
   },
@@ -444,8 +444,8 @@ const DEMO = [
     "process": "淘宝C店-用户ID抓取",
     "pc": "rpa5@szlc",
     "start": "11:00",
-    "end": "11:30",
-    "runtime": 1800,
+    "end": "11:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 38
   },
@@ -453,8 +453,8 @@ const DEMO = [
     "process": "快手-商品-本店分析-商品列表",
     "pc": "rpa5@szlc",
     "start": "13:00",
-    "end": "13:30",
-    "runtime": 1800,
+    "end": "13:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 39
   },
@@ -462,8 +462,8 @@ const DEMO = [
     "process": "仓库-销售出库单-顺丰未发货快递推送",
     "pc": "rpa5@szlc",
     "start": "10:00",
-    "end": "10:30",
-    "runtime": 1800,
+    "end": "10:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 40
   },
@@ -471,8 +471,8 @@ const DEMO = [
     "process": "有赞-商品评价管理",
     "pc": "rpa5@szlc",
     "start": "02:10",
-    "end": "02:40",
-    "runtime": 1800,
+    "end": "02:15",
+    "runtime": 300,
     "status": "运行中",
     "id": 41
   },
@@ -480,8 +480,8 @@ const DEMO = [
     "process": "百度优选-商品评价管理",
     "pc": "rpa5@szlc",
     "start": "02:15",
-    "end": "02:45",
-    "runtime": 1800,
+    "end": "02:20",
+    "runtime": 300,
     "status": "运行中",
     "id": 42
   },
@@ -489,8 +489,8 @@ const DEMO = [
     "process": "淘宝(千牛)-商品评价管理",
     "pc": "rpa5@szlc",
     "start": "02:30",
-    "end": "03:00",
-    "runtime": 1800,
+    "end": "02:35",
+    "runtime": 300,
     "status": "运行中",
     "id": 43
   },
@@ -498,8 +498,8 @@ const DEMO = [
     "process": "有赞-客服会话记录",
     "pc": "rpa5@szlc",
     "start": "13:05",
-    "end": "13:35",
-    "runtime": 1800,
+    "end": "13:10",
+    "runtime": 300,
     "status": "运行中",
     "id": 44
   },
@@ -507,8 +507,8 @@ const DEMO = [
     "process": "百度优选-客服会话记录",
     "pc": "rpa5@szlc",
     "start": "13:10",
-    "end": "13:40",
-    "runtime": 1800,
+    "end": "13:15",
+    "runtime": 300,
     "status": "运行中",
     "id": 45
   },
@@ -516,8 +516,8 @@ const DEMO = [
     "process": "淘宝生意参谋-客服会话记录",
     "pc": "rpa5@szlc",
     "start": "13:15",
-    "end": "13:45",
-    "runtime": 1800,
+    "end": "13:20",
+    "runtime": 300,
     "status": "运行中",
     "id": 46
   },
@@ -525,8 +525,8 @@ const DEMO = [
     "process": "小红书-客服会话记录",
     "pc": "rpa5@szlc",
     "start": "13:20",
-    "end": "13:50",
-    "runtime": 1800,
+    "end": "13:25",
+    "runtime": 300,
     "status": "运行中",
     "id": 47
   },
@@ -534,8 +534,8 @@ const DEMO = [
     "process": "拼多多-客服会话记录",
     "pc": "rpa5@szlc",
     "start": "13:25",
-    "end": "13:55",
-    "runtime": 1800,
+    "end": "13:30",
+    "runtime": 300,
     "status": "运行中",
     "id": 48
   },
@@ -543,8 +543,8 @@ const DEMO = [
     "process": "快手快语-客服会话记录",
     "pc": "rpa5@szlc",
     "start": "13:30",
-    "end": "14:00",
-    "runtime": 1800,
+    "end": "13:35",
+    "runtime": 300,
     "status": "运行中",
     "id": 49
   },
@@ -552,8 +552,8 @@ const DEMO = [
     "process": "抖店飞鸽-客服会话记录",
     "pc": "rpa5@szlc",
     "start": "13:35",
-    "end": "14:05",
-    "runtime": 1800,
+    "end": "13:40",
+    "runtime": 300,
     "status": "运行中",
     "id": 50
   },
@@ -561,8 +561,8 @@ const DEMO = [
     "process": "百度优选-订单导出",
     "pc": "rpa5@szlc",
     "start": "02:50",
-    "end": "03:20",
-    "runtime": 1800,
+    "end": "02:55",
+    "runtime": 300,
     "status": "运行中",
     "id": 51
   },
@@ -570,8 +570,8 @@ const DEMO = [
     "process": "百度优选-售后导出",
     "pc": "rpa5@szlc",
     "start": "03:00",
-    "end": "03:30",
-    "runtime": 1800,
+    "end": "03:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 52
   },
@@ -579,8 +579,8 @@ const DEMO = [
     "process": "百度优选-商品管理",
     "pc": "rpa5@szlc",
     "start": "03:20",
-    "end": "03:50",
-    "runtime": 1800,
+    "end": "03:25",
+    "runtime": 300,
     "status": "运行中",
     "id": 53
   },
@@ -588,8 +588,8 @@ const DEMO = [
     "process": "百度优选-用户ID提取",
     "pc": "rpa5@szlc",
     "start": "03:30",
-    "end": "04:00",
-    "runtime": 1800,
+    "end": "03:35",
+    "runtime": 300,
     "status": "运行中",
     "id": 54
   },
@@ -597,8 +597,8 @@ const DEMO = [
     "process": "百度优选-商品列表",
     "pc": "rpa5@szlc",
     "start": "05:30",
-    "end": "06:00",
-    "runtime": 1800,
+    "end": "05:35",
+    "runtime": 300,
     "status": "运行中",
     "id": 55
   },
@@ -606,8 +606,8 @@ const DEMO = [
     "process": "拼多多-商品列表",
     "pc": "rpa5@szlc",
     "start": "03:40",
-    "end": "04:10",
-    "runtime": 1800,
+    "end": "03:45",
+    "runtime": 300,
     "status": "运行中",
     "id": 56
   },
@@ -615,8 +615,8 @@ const DEMO = [
     "process": "淘宝直播店-数据-交易分析-商品构成",
     "pc": "rpa5@szlc",
     "start": "04:00",
-    "end": "04:30",
-    "runtime": 1800,
+    "end": "04:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 57
   },
@@ -624,8 +624,8 @@ const DEMO = [
     "process": "淘宝生意参谋-内容-内容概况-作品分析-更新后",
     "pc": "rpa5@szlc",
     "start": "17:20",
-    "end": "17:50",
-    "runtime": 1800,
+    "end": "17:25",
+    "runtime": 300,
     "status": "运行中",
     "id": 58
   },
@@ -633,8 +633,8 @@ const DEMO = [
     "process": "淘宝生意参谋-商品-商品排行",
     "pc": "rpa5@szlc",
     "start": "04:30",
-    "end": "05:00",
-    "runtime": 1800,
+    "end": "04:35",
+    "runtime": 300,
     "status": "运行中",
     "id": 59
   },
@@ -642,8 +642,8 @@ const DEMO = [
     "process": "淘宝生意参谋-业务专区-手淘信息流",
     "pc": "rpa5@szlc",
     "start": "04:40",
-    "end": "05:10",
-    "runtime": 1800,
+    "end": "04:45",
+    "runtime": 300,
     "status": "运行中",
     "id": 60
   },
@@ -651,8 +651,8 @@ const DEMO = [
     "process": "淘宝生意参谋-客户-店铺页分析-商品详情页",
     "pc": "rpa5@szlc",
     "start": "14:40",
-    "end": "15:10",
-    "runtime": 1800,
+    "end": "14:45",
+    "runtime": 300,
     "status": "运行中",
     "id": 61
   },
@@ -660,8 +660,8 @@ const DEMO = [
     "process": "淘宝生意参谋-自助分析-分析空间-个人空间-取数报表",
     "pc": "rpa5@szlc",
     "start": "13:40",
-    "end": "14:10",
-    "runtime": 1800,
+    "end": "13:45",
+    "runtime": 300,
     "status": "运行中",
     "id": 62
   },
@@ -669,8 +669,8 @@ const DEMO = [
     "process": "商品直播选款LSEI每日快照生成",
     "pc": "rpa5@szlc",
     "start": "22:00",
-    "end": "22:30",
-    "runtime": 1800,
+    "end": "22:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 63
   },
@@ -678,8 +678,8 @@ const DEMO = [
     "process": "淘宝C店-订单导出-报表生成",
     "pc": "rpa7@szlc",
     "start": "00:10",
-    "end": "00:40",
-    "runtime": 1800,
+    "end": "00:15",
+    "runtime": 300,
     "status": "运行中",
     "id": 64
   },
@@ -687,8 +687,8 @@ const DEMO = [
     "process": "淘宝C店-订单导出--手动生成报表",
     "pc": "rpa7@szlc",
     "start": "05:00",
-    "end": "05:30",
-    "runtime": 1800,
+    "end": "05:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 65
   },
@@ -696,8 +696,8 @@ const DEMO = [
     "process": "商品库存数据_SPU同步到数据库",
     "pc": "rpa2@szlc",
     "start": "02:00",
-    "end": "02:30",
-    "runtime": 1800,
+    "end": "02:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 66
   },
@@ -705,8 +705,8 @@ const DEMO = [
     "process": "抖音-西子-商品列表数据下载",
     "pc": "rpa2@szlc",
     "start": "10:00",
-    "end": "10:30",
-    "runtime": 1800,
+    "end": "10:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 67
   },
@@ -714,8 +714,8 @@ const DEMO = [
     "process": "抖音（西子小老板娘）-带货分",
     "pc": "rpa2@szlc",
     "start": "10:10",
-    "end": "10:40",
-    "runtime": 1800,
+    "end": "10:15",
+    "runtime": 300,
     "status": "运行中",
     "id": 68
   },
@@ -723,8 +723,8 @@ const DEMO = [
     "process": "视频号(西子原创女装，西子，西子高端女装)-店铺分",
     "pc": "rpa2@szlc",
     "start": "10:20",
-    "end": "10:50",
-    "runtime": 1800,
+    "end": "10:25",
+    "runtime": 300,
     "status": "运行中",
     "id": 69
   },
@@ -732,8 +732,8 @@ const DEMO = [
     "process": "快手西子小老板娘-带货分",
     "pc": "rpa2@szlc",
     "start": "10:40",
-    "end": "11:10",
-    "runtime": 1800,
+    "end": "10:45",
+    "runtime": 300,
     "status": "运行中",
     "id": 70
   },
@@ -741,8 +741,8 @@ const DEMO = [
     "process": "小红书（玉西子，西子高端女装的店）-店铺分-更新后",
     "pc": "rpa2@szlc",
     "start": "10:50",
-    "end": "11:20",
-    "runtime": 1800,
+    "end": "10:55",
+    "runtime": 300,
     "status": "运行中",
     "id": 71
   },
@@ -750,8 +750,8 @@ const DEMO = [
     "process": "抖音罗盘经营-每日商品卡流量成交情况（更新2）",
     "pc": "rpa2@szlc",
     "start": "11:00",
-    "end": "11:30",
-    "runtime": 1800,
+    "end": "11:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 72
   },
@@ -759,8 +759,8 @@ const DEMO = [
     "process": "客服日工作数据统计-小红书近105天-更新后",
     "pc": "rpa2@szlc",
     "start": "11:20",
-    "end": "11:50",
-    "runtime": 1800,
+    "end": "11:25",
+    "runtime": 300,
     "status": "运行中",
     "id": 73
   },
@@ -768,8 +768,8 @@ const DEMO = [
     "process": "抖音罗盘经营-商品-（商品概览，流量分析）",
     "pc": "rpa2@szlc",
     "start": "11:30",
-    "end": "12:00",
-    "runtime": 1800,
+    "end": "11:35",
+    "runtime": 300,
     "status": "运行中",
     "id": 74
   },
@@ -777,8 +777,8 @@ const DEMO = [
     "process": "小红书-订单导出-每日",
     "pc": "rpa2@szlc",
     "start": "00:30",
-    "end": "01:00",
-    "runtime": 1800,
+    "end": "00:35",
+    "runtime": 300,
     "status": "运行中",
     "id": 75
   },
@@ -786,8 +786,8 @@ const DEMO = [
     "process": "视频号-视频号助手-短视频_短视频分析_短视频明细",
     "pc": "rpa2@szlc",
     "start": "13:30",
-    "end": "14:00",
-    "runtime": 1800,
+    "end": "13:35",
+    "runtime": 300,
     "status": "运行中",
     "id": 76
   },
@@ -795,8 +795,8 @@ const DEMO = [
     "process": "抖音用户id信息",
     "pc": "rpa2@szlc",
     "start": "00:00",
-    "end": "00:30",
-    "runtime": 1800,
+    "end": "00:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 77
   },
@@ -804,8 +804,8 @@ const DEMO = [
     "process": "小红书千帆-数据-直播场次-数据大屏",
     "pc": "rpa2@szlc",
     "start": "11:40",
-    "end": "12:10",
-    "runtime": 1800,
+    "end": "11:45",
+    "runtime": 300,
     "status": "运行中",
     "id": 78
   },
@@ -813,8 +813,8 @@ const DEMO = [
     "process": "各平台-店铺综合评分抓取（无微信小店）",
     "pc": "rpa2@szlc",
     "start": "12:00",
-    "end": "12:30",
-    "runtime": 1800,
+    "end": "12:05",
+    "runtime": 300,
     "status": "运行中",
     "id": 79
   },
@@ -822,8 +822,8 @@ const DEMO = [
     "process": "微信小店-客服会话记录-商品评价管理-评分抓取（结合版）",
     "pc": "rpa7@szlc",
     "start": "10:03",
-    "end": "10:33",
-    "runtime": 1800,
+    "end": "10:08",
+    "runtime": 300,
     "status": "运行中",
     "id": 80
   }
@@ -863,12 +863,12 @@ function render() {
     g+='<div class="gantt-row"><div class="gantt-label"><span class="dot" style="background:'+PC_COLORS[i%7]+';"></span>'+esc(pcName)+'</div><div class="gantt-track">';
     items.forEach(task=>{
       const s=t2m(task.start), e=t2m(task.end);
-      const lp=(s/1440)*100, wp=Math.max(((e-s)/1440)*100, 2.5);
+      const lp=(s/1440)*100, wp=Math.max(((e-s)/1440)*100, 0.35);
       const c=pc(task.process), rt=task.runtime||0;
       g+='<div class="gantt-bar" style="left:'+lp+'%;width:'+wp+'%;background:'+c+';" '+
         'onmouseenter="shTip(event,'+task.id+')" onmouseleave="hiTip()" ondblclick="edProc('+task.id+')" '+
         'title="'+esc(task.process)+' | '+task.start+'-'+task.end+' | '+fm(rt)+'">'+
-        (wp>=4?esc(task.process):'')+'</div>';
+        (wp>=1.5?esc(task.process):'')+'</div>';
     });
     g+='</div></div>';
   });
