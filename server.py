@@ -147,49 +147,71 @@ def save_cb_log(entry):
 
 @app.route("/api/yingdao/callback", methods=["POST"])
 def yd_callback():
-    """接收影刀运行结果回调 → 自动匹配任务 → 失败则重跑"""
+    """接收影刀通知 → 兼容 开放平台回调 / 企业微信webhook 两种格式 → 自动匹配+重跑"""
     try:
         body = request.get_json(force=True, silent=True) or {}
-        entry = {
-            "time": datetime.now().isoformat(),
-            "body": body
-        }
+        entry = {"time": datetime.now().isoformat(), "body": body}
         save_cb_log(entry)
 
-        # 解析回调：影刀回调含 task 级别 status + jobList 数组
-        # 实际格式: {"dataType":"task","taskUuid":"...","status":"finish","jobList":[{...}]}
-        task_status = body.get("status", "")
-        job_list = body.get("jobList", [body])  # 兼容无 jobList 的扁平格式
+        app_name = ""; job_uuid = ""; app_uuid = ""; run_status = ""; schedule_uuid = ""
 
-        for job in job_list:
-            app_name = job.get("robotName") or job.get("appName") or ""
-            app_uuid = job.get("robotUuid") or job.get("appUuid") or ""
-            job_uuid = job.get("jobUuid") or body.get("jobUuid") or ""
-            run_status = job.get("status") or task_status
+        # 格式1: 企业微信 webhook {"msgtype":"text","text":{"content":"..."}}
+        if "msgtype" in body:
+            content = ""
+            if body.get("msgtype") == "text":
+                content = body.get("text", {}).get("content", "")
+            elif body.get("msgtype") == "markdown":
+                content = body.get("markdown", {}).get("content", "")
+
+            # 从文本中提取任务名和状态
+            import re
+            # 匹配常见影刀通知格式: 任务【xxx】/ 流程【xxx】
+            m = re.search(r'(?:任务|流程|应用)[【\[](.+?)[】\]]', content)
+            if m: app_name = m.group(1)
+            # 判断是否失败
+            is_failed = any(w in content for w in ['失败','异常','错误','超时','停止','取消','fail','error','timeout'])
+            run_status = "error" if is_failed else "finish"
+
+        # 格式2: 影刀开放平台回调 {"dataType":"task","jobList":[{...}]}
+        else:
+            task_status = body.get("status", "")
+            job_list = body.get("jobList", [body])
+            for job in job_list:
+                app_name = job.get("robotName") or job.get("appName") or app_name
+                app_uuid = job.get("robotUuid") or job.get("appUuid") or app_uuid
+                job_uuid = job.get("jobUuid") or body.get("jobUuid") or job_uuid
+                run_status = job.get("status") or task_status or run_status
             is_failed = run_status in ["error", "fail", "timeout", "stopped", "cancel"]
 
-            msg = f"[callback] {app_name}: {run_status}"
-            if is_failed: msg += " [FAILED]"
-            print(msg)
+        print(f"[callback] {app_name}: {run_status}" + (" [FAILED]" if is_failed else ""))
 
-            # 失败则检查是否自动重跑
-            if is_failed and job_uuid:
-                data = load_data()
-                if data:
-                    for t in data.get("tasks", []):
-                        if t.get("autoRerun") and (
-                            t.get("process") == app_name or
-                            t.get("robotName", "").lower() in app_name.lower() or
-                            app_name.lower() in t.get("process", "").lower()
-                        ):
-                            print(f"[回调] 自动重跑: {t['process']} → job/retry {job_uuid}")
-                            threading.Thread(
-                                target=lambda j=job_uuid: yd_api("/oapi/dispatch/v2/job/retry", {"jobUuid": j}),
-                                daemon=True
-                            ).start()
-                            entry["autoRerun"] = {"taskId": t["id"], "process": t["process"], "jobUuid": job_uuid}
-                            save_cb_log(entry)
-                            break
+        # 失败则匹配本地任务
+        if is_failed:
+            data = load_data()
+            if data:
+                matched = None
+                for t in data.get("tasks", []):
+                    if t.get("autoRerun"):
+                        p = t.get("process", "")
+                        if p and p in app_name or (app_name and app_name in p):
+                            matched = t; break
+                if matched:
+                    # 优先用 scheduleUuid 重跑整个调度
+                    suuid = matched.get("scheduleUuid") or schedule_uuid
+                    if suuid:
+                        print(f"[callback] auto-rerun: {matched['process']} via task/start {suuid}")
+                        threading.Thread(
+                            target=lambda: yd_api("/oapi/dispatch/v2/task/start", {"scheduleUuid": suuid}),
+                            daemon=True
+                        ).start()
+                    elif job_uuid:
+                        print(f"[callback] auto-rerun: {matched['process']} via job/retry {job_uuid}")
+                        threading.Thread(
+                            target=lambda: yd_api("/oapi/dispatch/v2/job/retry", {"jobUuid": job_uuid}),
+                            daemon=True
+                        ).start()
+                    entry["autoRerun"] = {"taskId": matched["id"], "process": matched["process"]}
+                    save_cb_log(entry)
 
         return jsonify({"success": True, "message": "回调已接收"})
     except Exception as e:

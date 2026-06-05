@@ -162,6 +162,7 @@ th.sortable .arrow { font-size:0.6rem; margin-left:2px; }
         <th class="sortable" onclick="sortTable('start')">开始 <span class="arrow"></span></th>
         <th>结束</th>
         <th class="sortable" onclick="sortTable('runtime')">运行时间 <span class="arrow"></span></th>
+        <th>任务UUID</th>
         <th class="sortable" onclick="sortTable('status')">状态 <span class="arrow"></span></th>
         <th>Webhook</th><th style="width:42px;" title="同步影刀后自动重跑失败任务">自动<br>重跑</th><th>操作</th>
       </tr></thead>
@@ -1121,6 +1122,7 @@ function render() {
       '<td><input class="inp tm" type="time" value="'+t.start+'" onchange="upd('+t.id+',\'start\',this.value)"></td>'+
       '<td><input class="inp tm" type="time" value="'+t.end+'" onchange="upd('+t.id+',\'end\',this.value)"></td>'+
       '<td><input class="inp rt" type="number" value="'+(t.runtime||'')+'" placeholder="秒" min="0" onblur="upd('+t.id+',\'runtime\',parseInt(this.value)||0)" onkeydown="if(event.key===\'Enter\')this.blur()"></td>'+
+      '<td><input class="inp" value="'+(t.scheduleUuid||'')+'" onchange="upd('+t.id+',\'scheduleUuid\',this.value)" placeholder="UUID" style="width:110px;font-size:0.68rem;" title="影刀调度任务UUID，用于重跑"></td>'+
       '<td><select class="sel" onchange="upd('+t.id+',\'status\',this.value)"><option'+(t.status==='运行中'?' selected':'')+'>运行中</option><option'+(t.status==='已暂停'?' selected':'')+'>已暂停</option><option'+(t.status==='已停止'?' selected':'')+'>已停止</option></select></td>'+
       '<td style="text-align:center;">'+
         '<input class="inp" value="'+(t.webhook||'')+'" onchange="upd('+t.id+',\'webhook\',this.value)" placeholder="URL" style="width:80px;font-size:0.7rem;" title="Webhook 地址">'+
