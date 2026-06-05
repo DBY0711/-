@@ -1,10 +1,13 @@
 .venv/
 __pycache__/
 *.pyc
+*.pyo
 .claude/
 node_modules/
 chart*.json
 demo_array.txt
 tasks_data.json
+data/
+venv/
 .DS_Store
 Thumbs.db
