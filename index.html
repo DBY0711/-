@@ -910,7 +910,7 @@ function render() {
   document.getElementById('tbl').innerHTML=srt.map((t,i)=>{
     const c=pc(t.process);
     const stopped = t.status==='已停止';
-    return '<tr'+(stopped?' style="opacity:0.4;text-decoration:line-through;"':'')+'><td>'+(i+1)+'</td>'+
+    return '<tr id="row-'+t.id+'"'+(stopped?' style="opacity:0.4;text-decoration:line-through;"':'')+'><td>'+(i+1)+'</td>'+
       '<td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+c+';margin-right:5px;"></span>'+
       '<input class="inp" value="'+esc(t.process)+'" onchange="upd('+t.id+',\'process\',this.value)" style="width:180px;font-weight:500;"></td>'+
       '<td><input class="inp" value="'+esc(t.pc)+'" onchange="upd('+t.id+',\'pc\',this.value)" style="width:100px;"></td>'+
@@ -933,9 +933,14 @@ function upd(id, field, value) {
 
 function addTask() {
   const pcs=[...new Set(tasks.map(t=>t.pc))];
-  tasks.push({id:nid++, process:'新流程', pc:pcs[0]||'电脑A', start:'09:00', end:'09:30', runtime:1800, status:'运行中'});
+  const nt = {id:nid++, process:'新流程', pc:pcs[0]||'电脑A', start:'09:00', end:'09:30', runtime:1800, status:'运行中'};
+  tasks.unshift(nt); // 插到最前面，方便看到
   render();
-  setTimeout(()=>{ const el=document.querySelector('#tbl tr:last-child'); if(el)el.scrollIntoView({behavior:'smooth'}); },100);
+  // 滚动到表格顶部，高亮新行
+  setTimeout(()=>{
+    const el=document.getElementById('row-'+nt.id);
+    if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.style.background='#fffde7'; setTimeout(()=>{el.style.background='';},2000); }
+  },100);
 }
 
 function del(id){ if(!confirm('确定删除？'))return; tasks=tasks.filter(t=>t.id!==id); render(); }
