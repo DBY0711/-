@@ -125,6 +125,11 @@ th.sortable .arrow { font-size:0.6rem; margin-left:2px; }
   </h2>
   <div class="gantt-box"><div class="gantt" id="gantt"></div></div>
   <div id="ydStatus" style="margin-top:10px;font-size:0.78rem;color:#888;"></div>
+  <div style="margin-top:6px;font-size:0.7rem;color:#999;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <span>📡 回调地址：<code id="cbUrl" style="background:#f0f0f5;padding:2px 6px;border-radius:3px;font-size:0.7rem;">加载中...</code></span>
+    <button class="btn" style="padding:2px 8px;font-size:0.65rem;" onclick="copyCbUrl()">📋 复制</button>
+    <button class="btn" style="padding:2px 8px;font-size:0.65rem;" onclick="viewCallbacks()">📋 回调日志</button>
+  </div>
 </div>
 
 <div class="card">
@@ -1392,7 +1397,37 @@ function importData(e){
 document.addEventListener('keydown',e=>{ if(e.ctrlKey&&e.key==='n'){e.preventDefault();addTask();} if(e.ctrlKey&&e.key==='s'){e.preventDefault();exportData();} });
 
 // 启动
-loadData().then(() => render());
+loadData().then(() => {
+  render();
+  document.getElementById('cbUrl').textContent = location.origin + '/api/yingdao/callback';
+});
+
+function copyCbUrl() {
+  const url = document.getElementById('cbUrl').textContent;
+  navigator.clipboard.writeText(url).then(() => alert('回调地址已复制！\n\n将此地址填入影刀控制台 → 应用设置 → 运行回调'));
+}
+
+function viewCallbacks() {
+  if (!apiAvailable) { alert('需要服务器模式'); return; }
+  fetch('/api/yingdao/callbacks').then(r=>r.json()).then(d => {
+    const logs = d.logs || [];
+    let html = '<h3>📡 影刀回调日志（最近 100 条）</h3>';
+    if (logs.length===0) html += '<div style="color:#ccc;padding:16px;">暂无回调记录</div>';
+    else html += logs.reverse().map(l => {
+      const b = l.body || {};
+      return '<div style="padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:0.78rem;">'+
+        '🕐 '+new Date(l.time).toLocaleString('zh-CN')+
+        ' | 状态：'+(b.status||b.code||'?')+
+        ' | <span style="font-size:0.7rem;color:#888;">'+esc(JSON.stringify(b).substring(0,150))+'</span>'+
+        '</div>';
+    }).join('');
+    const modal = document.createElement('div');
+    modal.className = 'modal-bg show';
+    modal.innerHTML = '<div class="modal-box">'+html+'<button class="btn" onclick="this.parentElement.parentElement.remove()" style="margin-top:12px;width:100%;">关闭</button></div>';
+    modal.onclick = e => { if(e.target===modal) modal.remove(); };
+    document.body.appendChild(modal);
+  }).catch(() => alert('获取失败'));
+}
 </script>
 </body>
 </html>

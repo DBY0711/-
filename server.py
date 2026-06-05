@@ -129,6 +129,43 @@ def get_logs():
     logs = load_logs()
     return jsonify({"success": True, "logs": logs[-50:]})  # 最近 50 条
 
+# ========== 影刀回调日志 ==========
+CALLBACK_LOG = "callback_log.json"
+
+def load_cb_log():
+    if os.path.exists(CALLBACK_LOG):
+        with open(CALLBACK_LOG, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+def save_cb_log(entry):
+    logs = load_cb_log()
+    logs.append(entry)
+    logs = logs[-500:]
+    with open(CALLBACK_LOG, "w", encoding="utf-8") as f:
+        json.dump(logs, f, ensure_ascii=False, indent=2)
+
+@app.route("/api/yingdao/callback", methods=["POST"])
+def yd_callback():
+    """接收影刀运行结果回调"""
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+        entry = {
+            "time": datetime.now().isoformat(),
+            "body": body
+        }
+        save_cb_log(entry)
+        print(f"[回调] 收到影刀回调: {json.dumps(body, ensure_ascii=False)[:300]}")
+        return jsonify({"success": True, "message": "回调已接收"})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route("/api/yingdao/callbacks", methods=["GET"])
+def yd_callbacks():
+    """查看回调日志"""
+    logs = load_cb_log()
+    return jsonify({"success": True, "logs": logs[-100:]})
+
 # ========== 影刀 API 集成 ==========
 
 def yd_token():
