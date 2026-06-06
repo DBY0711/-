@@ -152,6 +152,16 @@ select.inp-cell{cursor:pointer}
 .tab-panel{display:none}
 .tab-panel.active{display:block}
 
+/* ===== PAGINATION ===== */
+.pagination{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:16px;padding:10px 0;border-top:1px solid #f0f2f5}
+.pagination button{padding:6px 14px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:.78rem;font-family:inherit;transition:all .15s}
+.pagination button:hover:not(:disabled){background:#5b6abf;color:#fff;border-color:#5b6abf}
+.pagination button:disabled{opacity:.35;cursor:not-allowed}
+.pagination .page-num{display:inline-block;min-width:32px;padding:5px 8px;text-align:center;border-radius:6px;font-size:.78rem;cursor:pointer;transition:all .15s;border:1px solid transparent}
+.pagination .page-num:hover{background:#f0f0f5}
+.pagination .page-num.active{background:#5b6abf;color:#fff;font-weight:600}
+.pagination .page-info{font-size:.76rem;color:#888;margin:0 8px}
+
 /* ===== RESPONSIVE ===== */
 @media(max-width:768px){
   .container{padding:8px}
@@ -188,6 +198,21 @@ select.inp-cell{cursor:pointer}
   <div class="stat-card"><span class="stat-icon">🖥</span><div class="stat-num" id="statPcs">0</div><div class="stat-label">电脑数</div></div>
 </div>
 
+<div class="card">
+  <h2>📅 每日甘特图
+    <span class="card-actions">
+      <button class="btn btn-sm" onclick="zoomOut()">🔍−</button>
+      <input type="range" id="zoomSlider" min="1" max="10" value="2" oninput="setZoom(this.value)" style="width:100px">
+      <button class="btn btn-sm" onclick="zoomIn()">🔍+</button>
+      <span id="zoomLabel">2×</span>
+    </span>
+  </h2>
+  <div class="gantt-box">
+    <div class="gantt" id="gantt"></div>
+  </div>
+  <div id="ydStatus" class="yd-status"></div>
+</div>
+
 <!-- ===== TAB NAV ===== -->
 <div class="tab-nav">
   <button class="active" onclick="switchTab('yingdao')">📊 影刀任务</button>
@@ -222,20 +247,7 @@ select.inp-cell{cursor:pointer}
 </div>
 
 <!-- ===== GANTT CHART ===== -->
-<div class="card">
-  <h2>📅 每日甘特图
-    <span class="card-actions">
-      <button class="btn btn-sm" onclick="zoomOut()">🔍−</button>
-      <input type="range" id="zoomSlider" min="1" max="10" value="2" oninput="setZoom(this.value)" style="width:100px">
-      <button class="btn btn-sm" onclick="zoomIn()">🔍+</button>
-      <span id="zoomLabel">2×</span>
-    </span>
-  </h2>
-  <div class="gantt-box">
-    <div class="gantt" id="gantt"></div>
-  </div>
-  <div id="ydStatus" class="yd-status"></div>
-</div>
+
 
 
 <!-- ===== TASK TABLE ===== -->
@@ -270,11 +282,12 @@ select.inp-cell{cursor:pointer}
       <tbody id="tblBody"></tbody>
     </table>
   </div>
+  <div id="pageBar"></div>
   <!-- Batch Bar -->
   <div class="batch-bar" id="batchBar">
     <span id="batchCount">已选 0 项</span>
-    <button class="btn btn-sm" onclick="batchSetStatus('运行中')">▶ 批量运行中</button>
-    <button class="btn btn-sm" onclick="batchSetStatus('已停止')">⏸ 批量停止</button>
+    <button class="btn btn-sm" onclick="batchSetStatus('已启用')">✅ 批量启用</button>
+    <button class="btn btn-sm" onclick="batchSetStatus('已禁用')">⏸ 批量禁用</button>
     <button class="btn btn-sm btn-primary" onclick="batchSetRetry(true)">✅ 启用自动重试</button>
     <button class="btn btn-sm" onclick="batchSetRetry(false)">❌ 禁用自动重试</button>
     <button class="btn btn-sm btn-danger" onclick="batchDelete()">🗑 批量删除</button>
@@ -555,7 +568,7 @@ function renderStats(filtered) {
 }
 
 function renderGantt(filtered) {
-  const ganttData = filtered.filter(t => t.status === '已启用');
+  const ganttData = filtered.filter(t => t.status === '已启用' && t.pc);
   const grp = {}; ganttData.forEach(t => { if(!grp[t.pc]) grp[t.pc]=[]; grp[t.pc].push(t); });
   const plist = Object.keys(grp).sort();
   const zw = 100 * zoom;
@@ -652,12 +665,23 @@ function renderTable(filtered) {
   }).join('');
 
   // 翻页控件
-  let pageHtml = `<div style="display:flex;align-items:center;gap:8px;margin-top:12px;justify-content:center;">`;
-  pageHtml += `<button class="btn btn-sm" onclick="goPage(${page-1})" ${page<=1?'disabled':''}>◀ 上一页</button>`;
-  pageHtml += `<span style="font-size:0.78rem;color:#888;">第 ${page} / ${totalPages} 页（共 ${filtered.length} 条）</span>`;
-  pageHtml += `<button class="btn btn-sm" onclick="goPage(${page+1})" ${page>=totalPages?'disabled':''}>下一页 ▶</button>`;
-  pageHtml += `</div>`;
-  document.getElementById('filterInfo').innerHTML = pageHtml;
+  let ph = '<div class="pagination">';
+  ph += `<button onclick="goPage(${page-1})" ${page<=1?'disabled':''}>◀ 上一页</button>`;
+  // 页码按钮
+  for (let p = 1; p <= totalPages; p++) {
+    if (totalPages <= 7 || p === 1 || p === totalPages || Math.abs(p - page) <= 1) {
+      ph += `<span class="page-num${p===page?' active':''}" onclick="goPage(${p})">${p}</span>`;
+    } else if (p === 2 && page > 4) {
+      ph += '<span style="color:#ccc;">...</span>';
+    } else if (p === totalPages - 1 && page < totalPages - 3) {
+      ph += '<span style="color:#ccc;">...</span>';
+    }
+  }
+  ph += `<button onclick="goPage(${page+1})" ${page>=totalPages?'disabled':''}>下一页 ▶</button>`;
+  ph += `<span class="page-info">共 ${filtered.length} 条</span>`;
+  ph += '</div>';
+  document.getElementById('pageBar').innerHTML = ph;
+  document.getElementById('filterInfo').textContent = `显示 ${filtered.length} / ${tasks.filter(t=>t.taskType==='yingdao').length} 条`;
 }
 
 function goPage(p) {
@@ -666,7 +690,7 @@ function goPage(p) {
 }
 
 function renderFilters(filtered) {
-  const allPcs = [...new Set(tasks.map(t=>t.pc))].sort();
+  const allPcs = [...new Set(tasks.map(t=>t.pc).filter(p=>p))].sort();
   const pcSel = document.getElementById('fPc');
   const curPc = pcSel.value;
   pcSel.innerHTML = '<option value="">🖥 全部电脑</option>' + allPcs.map(p => `<option${p===curPc?' selected':''}>${esc(p)}</option>`).join('');

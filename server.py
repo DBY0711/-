@@ -259,6 +259,23 @@ def _today():
     return datetime.now().strftime("%Y-%m-%d")
 
 
+def _parse_text_report(text):
+    """解析文本格式错误报告：时间：...；运行机器人：...；运行异常计划：..."""
+    import re
+    result = {}
+    parts = re.split(r'[;；]', text)
+    for part in parts:
+        part = part.strip().rstrip('。.')
+        if not part:
+            continue
+        kv = re.split(r'[：:]', part, maxsplit=1)
+        if len(kv) == 2:
+            key = kv[0].strip()
+            val = kv[1].strip()
+            result[key] = val
+    return result
+
+
 def _daily_reset(task):
     """如果不在当天，重置重试次数"""
     if task.get("retryDate") != _today():
@@ -791,7 +808,26 @@ def api_run_history():
 @_check_token
 def api_error_report():
     """接收外部失败报告 → 匹配任务 → 判断是否重试"""
-    body = request.get_json(force=True, silent=True) or {}
+    content_type = request.content_type or ""
+    body = {}
+
+    if "json" in content_type:
+        body = request.get_json(force=True, silent=True) or {}
+    else:
+        # 文本格式：解析原始 body
+        raw = request.get_data(as_text=True) or ""
+        if raw.strip():
+            # 尝试 JSON
+            try:
+                body = json.loads(raw)
+            except (json.JSONDecodeError, ValueError):
+                # 按文本格式解析
+                parsed = _parse_text_report(raw)
+                body["process"] = parsed.get("运行异常计划") or parsed.get("运行异常应用") or ""
+                body["pc"] = parsed.get("运行机器人") or ""
+                body["msg"] = parsed.get("错误信息") or raw[:500]
+                body["reportTime"] = parsed.get("时间", "")
+
     process = body.get("process", "").strip()
     msg = body.get("msg", body.get("error", ""))
     pc = body.get("pc", "").strip()

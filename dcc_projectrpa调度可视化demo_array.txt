@@ -1,0 +1,4 @@
+  File "<string>", line 10
+    proc = t['process'].replace('\', '\\').replace("'", "\'")
+                                                            ^
+SyntaxError: unexpected character after line continuation character
