@@ -13,3 +13,5 @@ venv/
 Thumbs.db
 run_history.json
 callback_log.json
+server_data.json
+alerts.json
