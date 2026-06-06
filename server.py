@@ -4,26 +4,77 @@ import os
 import time
 import threading
 import uuid
+import hashlib
+import hmac
 from datetime import datetime
+from functools import wraps
 from flask import Flask, request, jsonify, send_from_directory
 import requests
 
 app = Flask(__name__, static_folder=".")
 
 # ============================================================
-# 配置
+# 配置（敏感信息优先从环境变量读取）
 # ============================================================
 DATA_FILE = "server_data.json"
 RUN_HISTORY_FILE = "run_history.json"
 CALLBACK_LOG_FILE = "callback_log.json"
 
 YINGDAO_BASE = "https://api.yingdao.com"
-YINGDAO_AK = "2pTMyf0WR4U8xSHD@platform"
-YINGDAO_SK = "MAzEKXWJ5a7g9FfDCs4qu1BNQd2xtebS"
-TOKEN_TTL = 7100  # 约 2 小时，提前 100s 刷新
+YINGDAO_AK = os.environ.get("YINGDAO_AK", "2pTMyf0WR4U8xSHD@platform")
+YINGDAO_SK = os.environ.get("YINGDAO_SK", "MAzEKXWJ5a7g9FfDCs4qu1BNQd2xtebS")
+API_TOKEN = os.environ.get("API_TOKEN", "rpa-schedule-token-2026")
+TOKEN_TTL = 7100
 
 _token_cache = {"token": None, "expires_at": 0}
 _token_lock = threading.Lock()
+
+# 简易速率限制
+_rate_limit = {}  # {ip: [(time, path), ...]}
+RATE_LIMIT = 60  # 每分钟最多 60 次请求
+
+
+def _check_token(f):
+    """装饰器：验证 API Token"""
+    @wraps(f)
+    def wrapper(*a, **kw):
+        token = request.headers.get("X-API-Token") or request.args.get("token") or ""
+        if token != API_TOKEN:
+            return jsonify({"success": False, "message": "未授权：缺少有效 API Token"}), 401
+        return f(*a, **kw)
+    return wrapper
+
+
+def _rate_check():
+    """简易速率限制（内存版）"""
+    ip = request.remote_addr or "unknown"
+    now = time.time()
+    if ip not in _rate_limit:
+        _rate_limit[ip] = []
+    _rate_limit[ip] = [t for t in _rate_limit[ip] if now - t[0] < 60]
+    if len(_rate_limit[ip]) >= RATE_LIMIT:
+        return False
+    _rate_limit[ip].append((now, request.path))
+    return True
+
+
+def _verify_yingdao_sign():
+    """验证影刀回调签名"""
+    body = request.get_json(force=True, silent=True) or {}
+    params = body.get("params", {})
+    sign = params.get("sign", "")
+    if not sign:
+        return True  # 无签名时放行（兼容旧格式）
+    body_md5 = params.get("bodyMd5", "")
+    timestamp = params.get("timestamp", "")
+    payload = body.get("body", {})
+    payload_str = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    computed_md5 = hashlib.md5(payload_str.encode()).hexdigest()
+    sign_str = f"{computed_md5}\n{timestamp}"
+    computed_sign = hmac.new(
+        YINGDAO_SK.encode(), sign_str.encode(), hashlib.sha1
+    ).hexdigest()
+    return hmac.compare_digest(computed_sign, sign)
 
 
 # ============================================================
@@ -264,6 +315,7 @@ def api_get_tasks():
 
 
 @app.route("/api/tasks", methods=["POST"])
+@_check_token
 def api_save_tasks():
     try:
         body = request.get_json(force=True, silent=True)
@@ -424,6 +476,7 @@ def api_yingdao_sync():
 
 # ---------- 影刀：启动 ----------
 @app.route("/api/yingdao/start", methods=["POST"])
+@_check_token
 def api_yingdao_start():
     """启动任务 — 先查 schedule/detail 获取 robotUuid，再用 job/start"""
     body = request.get_json(force=True, silent=True) or {}
@@ -482,6 +535,7 @@ def api_yingdao_start():
 
 # ---------- 影刀：手动重跑 ----------
 @app.route("/api/yingdao/rerun", methods=["POST"])
+@_check_token
 def api_yingdao_rerun():
     body = request.get_json(force=True, silent=True) or {}
     job_uuid = body.get("jobUuid")
@@ -521,6 +575,10 @@ def api_yingdao_rerun():
 def api_yingdao_callback():
     """接收影刀运行结果回调 → 记录运行历史 → 按规则自动重试"""
     raw = request.get_json(force=True, silent=True) or {}
+
+    # 验证影刀签名
+    if not _verify_yingdao_sign():
+        return jsonify({"success": False, "message": "签名验证失败"}), 403
 
     # 保存原始回调日志
     save_callback_log({"time": datetime.now().isoformat(), "body": raw})
@@ -679,6 +737,7 @@ def api_run_history():
 
 # ---------- 外部失败报告 ----------
 @app.route("/api/error-report", methods=["POST"])
+@_check_token
 def api_error_report():
     """接收外部失败报告 → 匹配任务 → 判断是否重试"""
     body = request.get_json(force=True, silent=True) or {}

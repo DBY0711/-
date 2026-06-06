@@ -399,6 +399,9 @@ let lastSyncTime = '';
 let historyPage = 1;
 const HISTORY_PER_PAGE = 50;
 
+const API_TOKEN = 'rpa-schedule-token-2026';
+const apiHeaders = {'Content-Type':'application/json','X-API-Token':API_TOKEN};
+
 let currentTab = 'yingdao';
 
 function switchTab(tab) {
@@ -457,7 +460,7 @@ async function loadData() {
 function saveData() {
   const payload = JSON.stringify({tasks, nid});
   if (apiAvailable) {
-    fetch('/api/tasks', {method:'POST', headers:{'Content-Type':'application/json'}, body:payload}).catch(()=>{});
+    fetch('/api/tasks', {method:'POST', headers:apiHeaders, body:payload}).catch(()=>{});
   }
   localStorage.setItem('rpa_tasks_v2', payload);
 }
@@ -825,7 +828,7 @@ function startTask(id) {
   statusEl.innerHTML = '<span style="color:#0891b2;">⏳ 正在启动：' + esc(t.process) + '...</span>';
 
   fetch('/api/yingdao/start', {
-    method:'POST', headers:{'Content-Type':'application/json'},
+    method:'POST', headers:apiHeaders,
     body: JSON.stringify({scheduleUuid: t.scheduleUuid, robotUuid: t.robotUuid, pc: t.pc, process: t.process})
   })
     .then(r => r.json())
