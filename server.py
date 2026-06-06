@@ -735,7 +735,7 @@ def api_yingdao_callback():
     is_success = str(status).lower() == "finish"
 
     if is_fail:
-        _add_alert(robot_name, pc, msg, "yingdao_callback", "异常")
+        _add_alert(robot_name, pc, msg, "yingdao_callback", "异常", "auto")
 
     if is_fail and matched:
         _daily_reset(matched)
@@ -860,7 +860,7 @@ def api_delete_alert(alert_id):
     return jsonify({"success": True})
 
 
-def _add_alert(process, pc, msg, source, status="异常"):
+def _add_alert(process, pc, msg, source, status="异常", retry_type=""):
     """自动添加告警记录（由回调/error-report触发）"""
     alerts = load_alerts()
     alerts.append({
@@ -871,6 +871,7 @@ def _add_alert(process, pc, msg, source, status="异常"):
         "status": status,
         "msg": msg[:300] if msg else "",
         "source": source,
+        "retryType": retry_type,
         "checked": False,
         "note": "",
     })
@@ -929,7 +930,8 @@ def api_error_report():
                 break
 
     # 自动告警
-    _add_alert(process, pc or (matched.get("pc", "") if matched else ""), msg, "manual_report", "异常")
+    retry_type = body.get("retryType", "manual")
+    _add_alert(process, pc or (matched.get("pc", "") if matched else ""), msg, "manual_report", "异常", retry_type)
 
     # 创建运行记录
     record = {

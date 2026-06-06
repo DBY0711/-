@@ -348,7 +348,7 @@ select.inp-cell{cursor:pointer}
         <th>电脑</th>
         <th>状态</th>
         <th>错误信息</th>
-        <th>来源</th>
+        <th>运行方式</th>
         <th>备注</th>
         <th>操作</th>
       </tr></thead>
@@ -1222,17 +1222,27 @@ function loadAlerts() {
         body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#ccc;">暂无' + alertView + '记录</td></tr>';
         return;
       }
-      body.innerHTML = alerts.map(a => '<tr>\
+      body.innerHTML = alerts.map(a => {
+        const runMode = a.retryType === 'auto' ? '<span style="color:#e65100;font-weight:600;">🤖 自动运行</span>'
+          : a.retryType === 'manual' ? '<span style="color:#1565c0;font-weight:600;">👆 手动运行</span>'
+          : '<span style="color:#888;">--</span>';
+        const isExc = a.status === '异常';
+        return '<tr>\
         <td><input type="checkbox" class="cb" '+(a.checked?'checked':'')+' onchange="toggleAlertCheck(\''+esc(a.id)+'\',this.checked)"></td>\
         <td style="white-space:nowrap;font-size:0.73rem;">'+iso2time(a.time)+'</td>\
         <td><b>'+esc(a.process||'')+'</b></td>\
         <td>'+esc(a.pc||'')+'</td>\
         <td>'+statusBadge(a.status)+'</td>\
-        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+esc(a.msg||'')+'">'+esc((a.msg||'').substring(0,60))+'</td>\
-        <td style="font-size:0.7rem;color:#888;">'+(a.source==='yingdao_callback'?'影刀回调':a.source==='manual_report'?'手动报告':a.source||'')+'</td>\
-        <td><input class="inp-cell" value="'+esc(a.note||'')+'" onchange="updateAlertNote(\''+esc(a.id)+'\',this.value)" placeholder="备注" style="width:80px;font-size:0.7rem;"></td>\
-        <td><button class="btn btn-sm btn-danger" onclick="delAlert(\''+esc(a.id)+'\')" style="padding:2px 6px;font-size:0.65rem;">✕</button></td>\
-      </tr>').join('');
+        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+esc(a.msg||'')+'">'+esc((a.msg||'').substring(0,50))+'</td>\
+        <td>'+runMode+'</td>\
+        <td><input class="inp-cell" value="'+esc(a.note||'')+'" onchange="updateAlertNote(\''+esc(a.id)+'\',this.value)" placeholder="备注" style="width:70px;font-size:0.7rem;"></td>\
+        <td style="white-space:nowrap;">'+
+          (isExc ? '<button class="btn btn-sm btn-primary" onclick="retryAlert(\''+esc(a.id)+'\',\''+esc(a.process||'')+'\')" style="padding:2px 8px;font-size:0.65rem;margin-right:3px;" title="手动重跑">🔄</button>'+
+                   '<button class="btn btn-sm btn-success" onclick="markAlertDone(\''+esc(a.id)+'\')" style="padding:2px 6px;font-size:0.65rem;margin-right:3px;" title="标记已处理">✅</button>'
+                   : '')+
+          '<button class="btn btn-sm btn-danger" onclick="delAlert(\''+esc(a.id)+'\')" style="padding:2px 6px;font-size:0.65rem;">✕</button></td>\
+      </tr>';
+      }).join('');
     });
 }
 
@@ -1242,6 +1252,30 @@ function toggleAlertCheck(id, checked) {
 function updateAlertNote(id, note) {
   fetch('/api/alerts/' + id, {method:'PUT', headers: apiHeaders, body: JSON.stringify({note})});
 }
+function markAlertDone(id) {
+  fetch('/api/alerts/' + id, {method:'PUT', headers: apiHeaders, body: JSON.stringify({status:'成功',checked:true})})
+    .then(() => loadAlerts());
+}
+
+function retryAlert(id, process) {
+  const task = tasks.find(t => (t.process||'').toLowerCase() === (process||'').toLowerCase());
+  if (!task) { alert('未匹配到任务: ' + process); return; }
+  if (!apiAvailable) { alert('需要服务器模式'); return; }
+
+  const statusEl = document.getElementById('ydStatus');
+  statusEl.innerHTML = '<span style="color:#0891b2;">⏳ 手动重试：' + esc(process) + '...</span>';
+
+  fetch('/api/error-report', {
+    method:'POST', headers: apiHeaders,
+    body: JSON.stringify({process: process, pc: task.pc, msg: '手动重试', retryType: 'manual'})
+  }).then(r => r.json()).then(d => {
+    statusEl.innerHTML = d.success
+      ? '<span style="color:#2da87a;">✅ ' + esc(d.message) + '</span>'
+      : '<span style="color:#d44;">❌ ' + esc(d.message) + '</span>';
+    loadAlerts();
+  });
+}
+
 function delAlert(id) {
   fetch('/api/alerts/' + id, {method:'DELETE', headers: apiHeaders}).then(() => loadAlerts());
 }
