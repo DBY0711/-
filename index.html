@@ -336,14 +336,15 @@ select.inp-cell{cursor:pointer}
 <div class="card">
   <h2>📢 异常提醒
     <span class="card-actions">
-      <button class="btn btn-sm" id="alertViewExc" style="background:#ffebee;color:#c62828;border-color:#ffcdd2;" onclick="setAlertView('异常')">⚠ 异常</button>
-      <button class="btn btn-sm" id="alertViewOk" onclick="setAlertView('成功')">✅ 成功</button>
-      <select onchange="alertSort=this.value;loadAlerts()" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.73rem;font-family:inherit;">
+      <button class="btn" id="alertViewExc" style="background:#ffebee;color:#c62828;border-color:#ffcdd2;font-weight:600;" onclick="setAlertView('异常')">⚠ 异常</button>
+      <button class="btn" id="alertViewOk" style="font-weight:600;" onclick="setAlertView('成功')">✅ 成功</button>
+      <select onchange="alertSort=this.value;loadAlerts()" style="padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.8rem;font-family:inherit;background:#fff;cursor:pointer;">
         <option value="time-desc">⏱ 时间倒序</option>
         <option value="date-group">📅 按日期分组</option>
         <option value="pc">🖥 按电脑排序</option>
       </select>
-      <button class="btn btn-sm" onclick="loadAlerts()">🔄 刷新</button>
+      <button class="btn" onclick="loadAlerts()">🔄 刷新</button>
+      <button class="btn btn-danger" onclick="clearAllAlerts()">🗑 一键清空</button>
     </span>
   </h2>
   <div class="tbl-wrap">
@@ -1293,10 +1294,10 @@ function loadAlerts() {
         <td><input class="inp-cell" value="'+esc(a.note||'')+'" onchange="updateAlertNote(\''+esc(a.id)+'\',this.value)" placeholder="备注" style="width:70px;font-size:0.7rem;"></td>\
         <td style="white-space:nowrap;">'+
           (isExc
-            ? '<button class="btn btn-sm btn-primary" onclick="retryAlert(\''+esc(a.id)+'\',\''+esc(a.process||'')+'\')" style="padding:2px 8px;font-size:0.65rem;margin-right:3px;" title="手动重跑">🔄</button>'+
-              '<button class="btn btn-sm btn-success" onclick="markAlertDone(\''+esc(a.id)+'\')" style="padding:2px 6px;font-size:0.65rem;margin-right:3px;" title="标记已处理">✅</button>'
-            : '<button class="btn btn-sm" onclick="undoAlert(\''+esc(a.id)+'\')" style="padding:2px 6px;font-size:0.65rem;margin-right:3px;color:#e65100;" title="撤销回异常">↩ 撤销</button>')+
-          '<button class="btn btn-sm btn-danger" onclick="delAlert(\''+esc(a.id)+'\')" style="padding:2px 6px;font-size:0.65rem;">✕</button></td>\
+            ? '<button class="btn btn-sm btn-primary" onclick="retryAlert(\''+esc(a.id)+'\',\''+esc(a.process||'')+'\')" style="margin-right:4px;" title="启动任务重跑">🔄 重跑</button>'+
+              '<button class="btn btn-sm btn-success" onclick="markAlertDone(\''+esc(a.id)+'\')" style="margin-right:4px;" title="手动标记已处理">✅ 处理</button>'
+            : '<button class="btn btn-sm" onclick="undoAlert(\''+esc(a.id)+'\')" style="margin-right:4px;color:#e65100;border-color:#ffe0b2;background:#fff8e1;" title="撤销回异常状态">↩ 撤销</button>')+
+          '<button class="btn btn-sm btn-danger" onclick="delAlert(\''+esc(a.id)+'\')" title="删除此条">✕ 删除</button></td>\
       </tr>';
       }).join('');
     });
@@ -1347,6 +1348,13 @@ function retryAlert(id, process) {
 
 function delAlert(id) {
   fetch('/api/alerts/' + id, {method:'DELETE', headers: apiHeaders}).then(() => loadAlerts());
+}
+
+function clearAllAlerts() {
+  if (!confirm('确定清空全部告警记录？此操作不可恢复！')) return;
+  fetch('/api/alerts', {method:'DELETE', headers: apiHeaders})
+    .then(r => r.json())
+    .then(d => { alert(d.message || '已清空'); loadAlerts(); });
 }
 
 // ============================================================

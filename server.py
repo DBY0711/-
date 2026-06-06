@@ -939,6 +939,15 @@ def api_delete_alert(alert_id):
     return jsonify({"success": True})
 
 
+@app.route("/api/alerts", methods=["DELETE"])
+@_login_required
+def api_clear_alerts():
+    """清空全部告警"""
+    save_alerts([])
+    return jsonify({"success": True, "message": "已清空全部告警"})
+
+
+
 def _add_alert(process, pc, msg, source, status="异常", retry_type=""):
     """自动添加告警记录（由回调/error-report触发）"""
     alerts = load_alerts()
