@@ -342,6 +342,11 @@ def login_page():
     return send_from_directory(".", "login.html")
 
 
+@app.route("/api-docs.html")
+def api_docs():
+    return send_from_directory(".", "api-docs.html")
+
+
 @app.route("/api/login", methods=["POST"])
 def api_login():
     body = request.get_json(force=True, silent=True) or {}

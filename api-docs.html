@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API 文档 - RPA 调度</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:#f0f2f5;color:#1a1d28;line-height:1.6;padding:20px}
+.container{max-width:900px;margin:0 auto}
+h1{font-size:1.4rem;margin-bottom:24px;color:#5b6abf}
+.card{background:#fff;border-radius:10px;padding:24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card h2{font-size:1rem;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.method{display:inline-block;padding:3px 10px;border-radius:4px;font-size:.7rem;font-weight:700;font-family:monospace}
+.method.get{background:#e3f2fd;color:#1565c0}
+.method.post{background:#e8f5e9;color:#2e7d32}
+.method.delete{background:#ffebee;color:#c62828}
+.method.put{background:#fff3e0;color:#e65100}
+.url{font-family:monospace;font-size:.85rem;margin:8px 0;padding:8px 12px;background:#f8fafc;border-radius:6px;word-break:break-all}
+.desc{font-size:.8rem;color:#555;margin:6px 0}
+.auth{font-size:.73rem;color:#e65100;margin:4px 0}
+pre{background:#1a1d28;color:#e0e0e0;padding:12px 16px;border-radius:8px;font-size:.75rem;overflow-x:auto;margin:8px 0}
+pre .key{color:#82aaff}
+pre .str{color:#c3e88d}
+table{width:100%;border-collapse:collapse;font-size:.78rem;margin:8px 0}
+th,td{padding:6px 10px;text-align:left;border-bottom:1px solid #f0f2f5}
+th{color:#888;font-weight:600;font-size:.7rem}
+.back{display:inline-block;margin-bottom:16px;color:#5b6abf;text-decoration:none;font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="container">
+<a href="/" class="back">← 返回管理页面</a>
+<h1>📡 RPA 调度 API 文档</h1>
+
+<div class="card">
+  <h2>🔑 认证说明</h2>
+  <p class="desc">除 <b>/api/yingdao/callback</b> 外，所有写操作需在请求头携带：</p>
+  <pre><span class="key">X-API-Token</span>: <span class="str">rpa-schedule-token-2026</span></pre>
+  <p class="desc">可设置环境变量 <b>API_TOKEN</b> 自定义。</p>
+</div>
+
+<div class="card">
+  <h2><span class="method get">GET</span> 系统信息</h2>
+  <div class="url">/api/tasks</div>
+  <p class="desc">获取任务列表</p>
+  <div class="url">/api/yingdao/run-history?page=1&per_page=50&status=&search=</div>
+  <p class="desc">分页查询运行记录，支持 status 筛选和 search 搜索</p>
+  <div class="url">/api/yingdao/callbacks</div>
+  <p class="desc">查看原始回调日志（最近100条）</p>
+  <div class="url">/api/alerts?status=异常</div>
+  <p class="desc">查询告警记录（status=异常/成功）</p>
+  <div class="url">/api/check-login</div>
+  <p class="desc">检查登录状态</p>
+</div>
+
+<div class="card">
+  <h2><span class="method post">POST</span> 任务 & 同步</h2>
+  <div class="url">/api/tasks</div>
+  <pre>{"tasks":[...],"nid":100}</pre>
+  <p class="desc">保存任务数据</p>
+  <div class="url">/api/yingdao/sync</div>
+  <pre>{}</pre>
+  <p class="desc">从影刀同步计划+运行记录，合并到本地</p>
+  <div class="url">/api/yingdao/start</div>
+  <pre>{"scheduleUuid":"...","robotUuid":"...","pc":"rpa5@szlc","process":"流程名"}</pre>
+  <p class="desc">启动任务（自动调 schedule/detail 获取正确 robotUuid）</p>
+  <div class="url">/api/yingdao/rerun</div>
+  <pre>{"jobUuid":"...","process":"流程名"}</pre>
+  <p class="desc">手动重跑失败任务</p>
+</div>
+
+<div class="card">
+  <h2><span class="method post">POST</span> 登录</h2>
+  <div class="url">/api/login</div>
+  <pre>{"username":"<span class="str">admin</span>","password":"<span class="str">rpa2026!</span>"}</pre>
+  <div class="url">/api/logout</div>
+</div>
+
+<div class="card">
+  <h2><span class="method post">POST</span> 错误报告 ⭐</h2>
+  <p class="auth">⚠ 需 API Token，不需要登录</p>
+  <p class="desc">接收外部失败报告，自动匹配本地任务并判断是否重试。</p>
+  <div class="url">/api/error-report</div>
+  <p class="desc"><b>支持三种格式：</b></p>
+  <p class="desc" style="margin-top:8px">1. JSON 直接格式：</p>
+  <pre>Content-Type: application/json
+
+{"process":"<span class="str">视频号-直播-数据大屏</span>","msg":"<span class="str">连接超时</span>","pc":"<span class="str">rpa7@szlc</span>"}</pre>
+  <p class="desc" style="margin-top:8px">2. JSON 嵌套格式（真实告警）：</p>
+  <pre>Content-Type: application/json
+
+{"body":{"message":"<span class="str">时间：2026-06-06 08:03:42；运行机器人：rpa7@szlc；运行异常计划：视频号-直播-数据大屏；错误信息：超时</span>"}}</pre>
+  <p class="desc" style="margin-top:8px">3. 纯文本格式：</p>
+  <pre>Content-Type: text/plain
+
+时间：2026-06-06 08:03:42；运行机器人：rpa7@szlc；运行异常计划：视频号-直播-数据大屏；错误信息：超时</pre>
+
+  <p class="desc" style="margin-top:12px"><b>文本格式支持的字段：</b></p>
+  <table>
+    <tr><th>Key</th><th>映射到</th></tr>
+    <tr><td>运行异常计划</td><td>process（流程名）</td></tr>
+    <tr><td>运行异常应用</td><td>process（备选）</td></tr>
+    <tr><td>运行机器人</td><td>pc（电脑名）</td></tr>
+    <tr><td>错误信息</td><td>msg（错误详情）</td></tr>
+    <tr><td>时间</td><td>reportTime</td></tr>
+  </table>
+
+  <p class="desc" style="margin-top:12px"><b>返回示例：</b></p>
+  <pre>{"success":true,"matched":true,"retried":true,"retryCount":1,"message":"已触发重试: 视频号-直播-数据大屏（第1次）"}</pre>
+
+  <p class="desc" style="margin-top:8px"><b>curl 示例：</b></p>
+  <pre>curl -X POST http://121.40.245.6/api/error-report \
+  -H "Content-Type: application/json" \
+  -H "X-API-Token: rpa-schedule-token-2026" \
+  -d '{"process":"视频号-直播-数据大屏","msg":"连接超时","pc":"rpa7@szlc"}'</pre>
+</div>
+
+<div class="card">
+  <h2><span class="method post">POST</span> 影刀回调（无需认证）</h2>
+  <div class="url">/api/yingdao/callback</div>
+  <p class="desc">影刀平台回调地址。自动验证签名、记录运行历史、按规则重试。</p>
+  <pre>{"headers":{...},"params":{"sign":"...","bodyMd5":"..."},"body":{"robotName":"抖音加热-短视频","status":"error","jobUuid":"...","robotClientName":"rpa7@szlc","startTime":"...","endTime":"..."}}</pre>
+</div>
+
+<div class="card">
+  <h2><span class="method put">PUT</span> / <span class="method delete">DELETE</span> 告警 & 记录</h2>
+  <div class="url">PUT /api/alerts/:id</div>
+  <pre>{"checked":true,"note":"已处理"}</pre>
+  <div class="url">DELETE /api/alerts/:id</div>
+  <div class="url">DELETE /api/yingdao/run-history/:id</div>
+  <div class="url">DELETE /api/yingdao/run-history</div>
+  <p class="desc">清空全部运行记录</p>
+  <div class="url">DELETE /api/yingdao/callbacks/:id</div>
+  <div class="url">DELETE /api/yingdao/callbacks</div>
+  <p class="desc">清空全部回调日志</p>
+</div>
+
+</div>
+</body>
+</html>
