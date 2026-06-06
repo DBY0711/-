@@ -811,27 +811,28 @@ def api_error_report():
     content_type = request.content_type or ""
     body = {}
 
+    raw_text = ""
     if "json" in content_type:
         body = request.get_json(force=True, silent=True) or {}
+        # 数据可能在 body.body.message（回调包装格式）或 body.message
+        inner = body.get("body", {})
+        raw_text = inner.get("message", "") or body.get("message", "")
     else:
-        # 文本格式：解析原始 body
-        raw = request.get_data(as_text=True) or ""
-        if raw.strip():
-            # 尝试 JSON
-            try:
-                body = json.loads(raw)
-            except (json.JSONDecodeError, ValueError):
-                # 按文本格式解析
-                parsed = _parse_text_report(raw)
-                body["process"] = parsed.get("运行异常计划") or parsed.get("运行异常应用") or ""
-                body["pc"] = parsed.get("运行机器人") or ""
-                body["msg"] = parsed.get("错误信息") or raw[:500]
-                body["reportTime"] = parsed.get("时间", "")
+        raw_text = request.get_data(as_text=True) or ""
 
+    # 如果 body 中没有直接字段，从文本解析
     process = body.get("process", "").strip()
     msg = body.get("msg", body.get("error", ""))
     pc = body.get("pc", "").strip()
     job_uuid = body.get("jobUuid", "")
+
+    if raw_text and not process:
+        parsed = _parse_text_report(raw_text)
+        process = parsed.get("运行异常计划") or parsed.get("运行异常应用") or process
+        pc = parsed.get("运行机器人") or pc
+        msg = parsed.get("错误信息") or msg or raw_text[:500]
+        if not body.get("reportTime"):
+            body["reportTime"] = parsed.get("时间", "")
 
     if not process:
         return jsonify({"success": False, "message": "缺少 process 参数"}), 400
