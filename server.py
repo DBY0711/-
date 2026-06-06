@@ -114,6 +114,9 @@ def _migrate_old_data():
         if "sourceType" not in t:
             t["sourceType"] = ""
             needs_save = True
+        if "retryDate" not in t:
+            t["retryDate"] = ""
+            needs_save = True
         if "taskType" not in t:
             t["taskType"] = "yingdao"
             needs_save = True
@@ -183,6 +186,17 @@ def _yd_api(path, body=None, method="POST"):
         return {"success": False, "message": f"HTTP {e.response.status_code if e.response else '?'}: {err_body}"}
     except Exception as e:
         return {"success": False, "message": str(e)}
+
+
+def _today():
+    return datetime.now().strftime("%Y-%m-%d")
+
+
+def _daily_reset(task):
+    """如果不在当天，重置重试次数"""
+    if task.get("retryDate") != _today():
+        task["retryCount"] = 0
+        task["retryDate"] = _today()
 
 
 def _map_status(yd_status):
@@ -361,6 +375,7 @@ def api_yingdao_sync():
             t["sourceType"] = source_type or t.get("sourceType", "")
             if run.get("status") in ("finish", "success"):
                 t["retryCount"] = 0
+                t["retryDate"] = _today()
             merged.append(t)
             del existing[sched_uuid]
         else:
@@ -590,6 +605,7 @@ def api_yingdao_callback():
     is_success = str(status).lower() == "finish"
 
     if is_fail and matched:
+        _daily_reset(matched)
         # 更新任务状态
         matched["status"] = _map_status(status) if matched.get("taskType") != "manual" else matched["status"]
         matched["lastRun"] = end_time or datetime.now().isoformat()
@@ -616,6 +632,7 @@ def api_yingdao_callback():
     elif is_success and matched:
         # 成功 → 重置重试计数
         matched["retryCount"] = 0
+        matched["retryDate"] = _today()
         matched["status"] = "已启用"
         matched["lastRun"] = end_time or datetime.now().isoformat()
         save_run_history(records)
@@ -716,6 +733,7 @@ def api_error_report():
         save_run_history(records)
         return jsonify({"success": True, "message": f"未匹配到任务: {process}", "matched": False, "retried": False})
 
+    _daily_reset(matched)
     # 判断是否重试
     if matched.get("retryEnabled") and matched.get("retryCount", 0) < matched.get("maxRetry", 3):
         if job_uuid:
