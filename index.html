@@ -226,6 +226,11 @@ select.inp-cell{cursor:pointer}
       <option value="period">🕐 计划触发</option>
       <option value="manual">👆 手动触发</option>
     </select>
+    <select id="fRetryEnabled" onchange="applyFilters()">
+      <option value="">🔄 全部重试</option>
+      <option value="1">✅ 已启用重试</option>
+      <option value="0">❌ 未启用重试</option>
+    </select>
     <button class="btn btn-sm" onclick="clearFilters()">✕ 清除筛选</button>
     <span class="filter-info" id="filterInfo"></span>
   </div>
@@ -455,7 +460,7 @@ let tasks = [];
 let nid = 1;
 let apiAvailable = false;
 let zoom = 2;
-let filters = { search:'', pc:'', category:'', status:'', sourceType:'' };
+let filters = { search:'', pc:'', category:'', status:'', sourceType:'', retryEnabled:'' };
 let sortBy = 'start';
 let sortAsc = true;
 let selected = new Set();
@@ -545,6 +550,8 @@ function filteredTasks() {
     if (filters.category && t.category !== filters.category) return false;
     if (filters.status && t.status !== filters.status) return false;
     if (filters.sourceType && t.sourceType !== filters.sourceType) return false;
+    if (filters.retryEnabled === '1' && !t.retryEnabled) return false;
+    if (filters.retryEnabled === '0' && t.retryEnabled) return false;
     return true;
   });
   result.sort((a,b) => {
@@ -569,12 +576,13 @@ function applyFilters() {
   filters.category = document.getElementById('fCategory').value;
   filters.status = document.getElementById('fStatus').value;
   filters.sourceType = document.getElementById('fSourceType').value;
+  filters.retryEnabled = document.getElementById('fRetryEnabled').value;
   selected.clear(); page = 1;
   render();
 }
 
 function clearFilters() {
-  ['fSearch','fPc','fCategory','fStatus','fSourceType'].forEach(id => document.getElementById(id).value = '');
+  ['fSearch','fPc','fCategory','fStatus','fSourceType','fRetryEnabled'].forEach(id => document.getElementById(id).value = '');
   applyFilters();
 }
 
@@ -685,7 +693,7 @@ function renderTable(filtered) {
       <td>${startNum + i + 1}</td>
       <td>
         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};margin-right:4px;flex-shrink:0;"></span>
-        <input class="inp-cell" value="${esc(t.process||'')}" onchange="upd(${t.id},'process',this.value)" style="min-width:140px;font-weight:500;">
+        <input class="inp-cell" value="${esc(t.process||'')}" onchange="upd(${t.id},'process',this.value)" title="${esc(t.process||'')}" style="min-width:140px;font-weight:500;">
       </td>
       <td><input class="inp-cell inp-cat" list="catDatalist" value="${esc(t.category||'')}" onchange="upd(${t.id},'category',this.value)" placeholder="分类"></td>
       <td><input class="inp-cell" value="${esc(t.pc||'')}" onchange="upd(${t.id},'pc',this.value)" style="width:95px;"></td>
@@ -837,7 +845,7 @@ function renderManual() {
   }
   body.innerHTML = list.map(t => `<tr>
     <td><input type="checkbox" class="cb" onchange="toggleSel(${t.id})"${selected.has(t.id)?' checked':''}></td>
-    <td><input class="inp-cell" value="${esc(t.process||'')}" onchange="upd(${t.id},'process',this.value)" style="min-width:120px;font-weight:500;"></td>
+    <td><input class="inp-cell" value="${esc(t.process||'')}" onchange="upd(${t.id},'process',this.value)" title="${esc(t.process||'')}" style="min-width:120px;font-weight:500;"></td>
     <td><input class="inp-cell" value="${esc(t.pc||'')}" onchange="upd(${t.id},'pc',this.value)" style="width:90px;"></td>
     <td><input class="inp-cell inp-time" type="time" value="${t.start||'09:00'}" onchange="upd(${t.id},'start',this.value)"></td>
     <td><input class="inp-cell inp-time" type="time" value="${t.end||'09:05'}" onchange="upd(${t.id},'end',this.value)"></td>
@@ -1275,8 +1283,8 @@ function loadAlerts() {
         return dateRow + '<tr>\
         <td><input type="checkbox" class="cb" '+(a.checked?'checked':'')+' onchange="toggleAlertCheck(\''+esc(a.id)+'\',this.checked)"></td>\
         <td style="white-space:nowrap;font-size:0.73rem;">'+iso2time(a.time)+'</td>\
-        <td><b>'+esc(a.process||'')+'</b></td>\
-        <td>'+esc(a.pc||'')+'</td>\
+        <td title="'+esc(a.process||'')+'"><b>'+esc(a.process||'')+'</b></td>\
+        <td title="'+esc(a.pc||'')+'">'+esc(a.pc||'')+'</td>\
         <td>'+statusBadge(a.status)+'</td>\
         <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+esc(a.msg||'')+'">'+esc((a.msg||'').substring(0,50))+'</td>\
         <td>'+runMode+'</td>\
