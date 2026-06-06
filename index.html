@@ -221,6 +221,23 @@ select.inp-cell{cursor:pointer}
   <div class="cat-stats" id="catStats"></div>
 </div>
 
+<!-- ===== GANTT CHART ===== -->
+<div class="card">
+  <h2>📅 每日甘特图
+    <span class="card-actions">
+      <button class="btn btn-sm" onclick="zoomOut()">🔍−</button>
+      <input type="range" id="zoomSlider" min="1" max="10" value="2" oninput="setZoom(this.value)" style="width:100px">
+      <button class="btn btn-sm" onclick="zoomIn()">🔍+</button>
+      <span id="zoomLabel">2×</span>
+    </span>
+  </h2>
+  <div class="gantt-box">
+    <div class="gantt" id="gantt"></div>
+  </div>
+  <div id="ydStatus" class="yd-status"></div>
+</div>
+
+
 <!-- ===== TASK TABLE ===== -->
 <div class="card">
   <h2>📝 任务列表
@@ -263,22 +280,6 @@ select.inp-cell{cursor:pointer}
     <button class="btn btn-sm btn-danger" onclick="batchDelete()">🗑 批量删除</button>
     <button class="btn btn-sm" onclick="selected.clear();render()">✕ 取消选择</button>
   </div>
-</div>
-
-<!-- ===== GANTT CHART ===== -->
-<div class="card">
-  <h2>📅 每日甘特图
-    <span class="card-actions">
-      <button class="btn btn-sm" onclick="zoomOut()">🔍−</button>
-      <input type="range" id="zoomSlider" min="1" max="10" value="2" oninput="setZoom(this.value)" style="width:100px">
-      <button class="btn btn-sm" onclick="zoomIn()">🔍+</button>
-      <span id="zoomLabel">2×</span>
-    </span>
-  </h2>
-  <div class="gantt-box">
-    <div class="gantt" id="gantt"></div>
-  </div>
-  <div id="ydStatus" class="yd-status"></div>
 </div>
 
 </div><!-- /tab-yingdao -->
@@ -397,6 +398,8 @@ let sortBy = 'start';
 let sortAsc = true;
 let selected = new Set();
 let lastSyncTime = '';
+let page = 1;
+const PER_PAGE = 15;
 let historyPage = 1;
 const HISTORY_PER_PAGE = 50;
 
@@ -503,7 +506,7 @@ function applyFilters() {
   filters.category = document.getElementById('fCategory').value;
   filters.status = document.getElementById('fStatus').value;
   filters.sourceType = document.getElementById('fSourceType').value;
-  selected.clear();
+  selected.clear(); page = 1;
   render();
 }
 
@@ -515,6 +518,7 @@ function clearFilters() {
 function sortTable(col) {
   if (sortBy === col) sortAsc = !sortAsc;
   else { sortBy = col; sortAsc = true; }
+  page = 1;
   render();
 }
 
@@ -551,7 +555,7 @@ function renderStats(filtered) {
 }
 
 function renderGantt(filtered) {
-  const ganttData = tasks.filter(t => t.status === '已启用');
+  const ganttData = filtered.filter(t => t.status === '已启用');
   const grp = {}; ganttData.forEach(t => { if(!grp[t.pc]) grp[t.pc]=[]; grp[t.pc].push(t); });
   const plist = Object.keys(grp).sort();
   const zw = 100 * zoom;
@@ -598,20 +602,24 @@ function renderGantt(filtered) {
 
 function renderTable(filtered) {
   const body = document.getElementById('tblBody');
+  const totalPages = Math.ceil(filtered.length / PER_PAGE) || 1;
+  if (page > totalPages) page = totalPages;
+  const paged = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const startNum = (page - 1) * PER_PAGE;
+
   if (filtered.length === 0) {
     body.innerHTML = `<tr><td colspan="15" style="text-align:center;padding:40px;color:#ccc;">无匹配结果 — 点击「🔄 同步影刀数据」拉取任务</td></tr>`;
-    document.getElementById('filterInfo').textContent = `显示 0 / ${tasks.length} 条`;
+    document.getElementById('filterInfo').textContent = '';
     return;
   }
 
-  body.innerHTML = filtered.map((t, i) => {
+  body.innerHTML = paged.map((t, i) => {
     const c = pcColor(t.process || '');
-    const stopped = t.status === '已停止';
     const chk = selected.has(t.id) ? ' checked' : '';
     const retryActive = t.retryEnabled && (t.retryCount || 0) > 0;
-    return `<tr id="row-${t.id}"${stopped?' style="opacity:0.5;"':''}>
+    return `<tr id="row-${t.id}">
       <td><input type="checkbox" class="cb" onchange="toggleSel(${t.id})"${chk}></td>
-      <td>${i+1}</td>
+      <td>${startNum + i + 1}</td>
       <td>
         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};margin-right:4px;flex-shrink:0;"></span>
         <input class="inp-cell" value="${esc(t.process||'')}" onchange="upd(${t.id},'process',this.value)" style="min-width:140px;font-weight:500;">
@@ -642,7 +650,19 @@ function renderTable(filtered) {
       </td>
     </tr>`;
   }).join('');
-  document.getElementById('filterInfo').textContent = `显示 ${filtered.length} / ${tasks.length} 条`;
+
+  // 翻页控件
+  let pageHtml = `<div style="display:flex;align-items:center;gap:8px;margin-top:12px;justify-content:center;">`;
+  pageHtml += `<button class="btn btn-sm" onclick="goPage(${page-1})" ${page<=1?'disabled':''}>◀ 上一页</button>`;
+  pageHtml += `<span style="font-size:0.78rem;color:#888;">第 ${page} / ${totalPages} 页（共 ${filtered.length} 条）</span>`;
+  pageHtml += `<button class="btn btn-sm" onclick="goPage(${page+1})" ${page>=totalPages?'disabled':''}>下一页 ▶</button>`;
+  pageHtml += `</div>`;
+  document.getElementById('filterInfo').innerHTML = pageHtml;
+}
+
+function goPage(p) {
+  page = Math.max(1, p);
+  render();
 }
 
 function renderFilters(filtered) {
