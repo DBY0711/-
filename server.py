@@ -8,10 +8,12 @@ import hashlib
 import hmac
 from datetime import datetime
 from functools import wraps
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, session, redirect
+
 import requests
 
 app = Flask(__name__, static_folder=".")
+app.secret_key = os.environ.get("SECRET_KEY", "rpa-schedule-secret-" + str(uuid.uuid4())[:8])
 
 # ============================================================
 # 配置（敏感信息优先从环境变量读取）
@@ -24,6 +26,8 @@ YINGDAO_BASE = "https://api.yingdao.com"
 YINGDAO_AK = os.environ.get("YINGDAO_AK", "2pTMyf0WR4U8xSHD@platform")
 YINGDAO_SK = os.environ.get("YINGDAO_SK", "MAzEKXWJ5a7g9FfDCs4qu1BNQd2xtebS")
 API_TOKEN = os.environ.get("API_TOKEN", "rpa-schedule-token-2026")
+ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
+ADMIN_PASS = os.environ.get("ADMIN_PASS", "rpa2026!")
 TOKEN_TTL = 7100
 
 _token_cache = {"token": None, "expires_at": 0}
@@ -56,6 +60,18 @@ def _rate_check():
         return False
     _rate_limit[ip].append((now, request.path))
     return True
+
+
+def _login_required(f):
+    """装饰器：需要登录"""
+    @wraps(f)
+    def wrapper(*a, **kw):
+        if not session.get("logged_in"):
+            if request.is_json or request.path.startswith("/api/"):
+                return jsonify({"success": False, "message": "请先登录"}), 401
+            return redirect("/login.html")
+        return f(*a, **kw)
+    return wrapper
 
 
 def _verify_yingdao_sign():
@@ -302,13 +318,46 @@ def _auto_time(schedule_uuid, index=0):
 # ============================================================
 # Flask 路由
 # ============================================================
+
+# ---------- 登录 ----------
+@app.route("/login.html")
+def login_page():
+    return send_from_directory(".", "login.html")
+
+
+@app.route("/api/login", methods=["POST"])
+def api_login():
+    body = request.get_json(force=True, silent=True) or {}
+    user = body.get("username", "").strip()
+    pwd = body.get("password", "")
+    if user == ADMIN_USER and pwd == ADMIN_PASS:
+        session["logged_in"] = True
+        session["user"] = user
+        return jsonify({"success": True, "message": "登录成功"})
+    return jsonify({"success": False, "message": "用户名或密码错误"}), 401
+
+
+@app.route("/api/logout", methods=["POST"])
+def api_logout():
+    session.clear()
+    return jsonify({"success": True, "message": "已退出"})
+
+
+@app.route("/api/check-login")
+def api_check_login():
+    return jsonify({"logged_in": bool(session.get("logged_in")), "user": session.get("user", "")})
+
+
+# ---------- 主页 ----------
 @app.route("/")
+@_login_required
 def index():
     return send_from_directory(".", "index.html")
 
 
 # ---------- 任务 CRUD ----------
 @app.route("/api/tasks", methods=["GET"])
+@_login_required
 def api_get_tasks():
     data = load_tasks()
     return jsonify({"success": True, "data": data})
@@ -339,6 +388,7 @@ def api_backup():
 
 # ---------- 影刀：同步 ----------
 @app.route("/api/yingdao/sync", methods=["POST"])
+@_login_required
 def api_yingdao_sync():
     """从影刀 schedule/list(全部计划) + task/newest/list(运行详情) 合并"""
     # 1. 获取全部计划列表（含从未运行过的）
@@ -701,6 +751,7 @@ def api_yingdao_callback():
 
 # ---------- 影刀：运行历史 ----------
 @app.route("/api/yingdao/run-history", methods=["GET"])
+@_login_required
 def api_run_history():
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 50, type=int)

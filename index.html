@@ -177,6 +177,7 @@ select.inp-cell{cursor:pointer}
     <button class="btn" onclick="document.getElementById('imp').click()">📤 导入配置</button>
     <input type="file" id="imp" accept=".json" hidden onchange="importData(event)">
     <button class="btn" onclick="resetAll()">🔄 重置</button>
+    <button class="btn" onclick="logout()">🚪 退出</button>
   </div>
 </header>
 
@@ -1178,12 +1179,31 @@ function clearCallbacks() {
 function closeCbLog() { document.getElementById('cbLogModalBg').classList.remove('show'); }
 
 // ============================================================
+// 登录和退出
+// ============================================================
+function logout() {
+  fetch('/api/logout', {method:'POST'}).then(() => { location.href = '/login.html'; });
+}
+
+async function checkLogin() {
+  try {
+    const r = await fetch('/api/check-login');
+    const d = await r.json();
+    if (!d.logged_in) { location.href = '/login.html'; return false; }
+    return true;
+  } catch(e) { return true; /* 离线允许 */ }
+}
+
+// ============================================================
 // 初始化
 // ============================================================
-loadData().then(() => {
-  render();
-  document.getElementById('cbUrl').textContent = location.origin + '/api/yingdao/callback';
-  if (apiAvailable) refreshRunHistory();
+checkLogin().then(ok => {
+  if (!ok) return;
+  loadData().then(() => {
+    render();
+    document.getElementById('cbUrl').textContent = location.origin + '/api/yingdao/callback';
+    if (apiAvailable) refreshRunHistory();
+  });
 });
 
 // 键盘快捷键

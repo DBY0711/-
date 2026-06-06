@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPA 调度 - 登录</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gradient(135deg,#5b6abf,#7c8cf8);min-height:100vh;display:flex;justify-content:center;align-items:center}
+.box{background:#fff;border-radius:16px;padding:40px;width:380px;box-shadow:0 16px 48px rgba(0,0,0,.2)}
+.box h1{text-align:center;font-size:1.3rem;margin-bottom:8px;color:#1a1d28}
+.box .sub{text-align:center;font-size:.78rem;color:#999;margin-bottom:28px}
+.box input{width:100%;padding:12px 16px;border:1px solid #ddd;border-radius:8px;font-size:.9rem;margin-bottom:16px;font-family:inherit;transition:border-color .15s}
+.box input:focus{border-color:#5b6abf;outline:none;box-shadow:0 0 0 3px rgba(91,106,191,.1)}
+.box button{width:100%;padding:12px;background:#5b6abf;color:#fff;border:none;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer;transition:background .15s;font-family:inherit}
+.box button:hover{background:#4a59ad}
+.box button:disabled{opacity:.5;cursor:not-allowed}
+.msg{text-align:center;font-size:.78rem;min-height:20px;margin-top:8px}
+.msg.err{color:#d44}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>📊 RPA 调度可视化</h1>
+  <div class="sub">请输入账号密码登录</div>
+  <form onsubmit="login(event)">
+    <input type="text" id="username" placeholder="用户名" autofocus required>
+    <input type="password" id="password" placeholder="密码" required>
+    <button type="submit" id="btn">登 录</button>
+  </form>
+  <div class="msg" id="msg"></div>
+</div>
+<script>
+async function login(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn');
+  const msg = document.getElementById('msg');
+  btn.disabled = true; btn.textContent = '登录中...'; msg.className = 'msg'; msg.textContent = '';
+
+  try {
+    const res = await fetch('/api/login', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      msg.textContent = '登录成功，跳转中...';
+      location.href = '/';
+    } else {
+      msg.className = 'msg err';
+      msg.textContent = data.message || '登录失败';
+      btn.disabled = false; btn.textContent = '登 录';
+    }
+  } catch(err) {
+    msg.className = 'msg err';
+    msg.textContent = '网络错误';
+    btn.disabled = false; btn.textContent = '登 录';
+  }
+}
+</script>
+</body>
+</html>
