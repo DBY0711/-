@@ -199,21 +199,6 @@ select.inp-cell{cursor:pointer}
   <div class="stat-card"><span class="stat-icon">🖥</span><div class="stat-num" id="statPcs">0</div><div class="stat-label">电脑数</div></div>
 </div>
 
-<div class="card">
-  <h2>📅 每日甘特图
-    <span class="card-actions">
-      <button class="btn btn-sm" onclick="zoomOut()">🔍−</button>
-      <input type="range" id="zoomSlider" min="1" max="10" value="2" oninput="setZoom(this.value)" style="width:100px">
-      <button class="btn btn-sm" onclick="zoomIn()">🔍+</button>
-      <span id="zoomLabel">2×</span>
-    </span>
-  </h2>
-  <div class="gantt-box">
-    <div class="gantt" id="gantt"></div>
-  </div>
-  <div id="ydStatus" class="yd-status"></div>
-</div>
-
 <!-- ===== TAB NAV ===== -->
 <div class="tab-nav">
   <button class="active" onclick="switchTab('yingdao')">📊 影刀任务</button>
@@ -249,8 +234,20 @@ select.inp-cell{cursor:pointer}
 </div>
 
 <!-- ===== GANTT CHART ===== -->
-
-
+<div class="card">
+  <h2>📅 每日甘特图
+    <span class="card-actions">
+      <button class="btn btn-sm" onclick="zoomOut()">🔍−</button>
+      <input type="range" id="zoomSlider" min="1" max="10" value="2" oninput="setZoom(this.value)" style="width:100px">
+      <button class="btn btn-sm" onclick="zoomIn()">🔍+</button>
+      <span id="zoomLabel">2×</span>
+    </span>
+  </h2>
+  <div class="gantt-box">
+    <div class="gantt" id="gantt"></div>
+  </div>
+  <div id="ydStatus" class="yd-status"></div>
+</div>
 
 <!-- ===== TASK TABLE ===== -->
 <div class="card">
