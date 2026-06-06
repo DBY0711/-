@@ -3,1011 +3,491 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RPA 每日调度模板</title>
+<title>RPA 调度可视化</title>
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
-body { font-family: "PingFang SC","Microsoft YaHei","Segoe UI",sans-serif; background:#f0f2f5; color:#1a1d28; }
-.container { max-width:1500px; margin:0 auto; padding:16px; }
+/* ===== RESET ===== */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;background:#f0f2f5;color:#1a1d28;line-height:1.5}
 
-/* 头部 */
-.header { background:#fff; border-radius:10px; padding:16px 24px; margin-bottom:14px; box-shadow:0 1px 3px rgba(0,0,0,0.06); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
-.header h1 { font-size:1.2rem; color:#5b6abf; }
-.header .btns { display:flex; gap:6px; flex-wrap:wrap; }
-.btn { padding:7px 13px; border:1px solid #ddd; border-radius:6px; background:#fff; cursor:pointer; font-size:0.8rem; transition:all 0.15s; }
-.btn:hover { background:#f5f5f5; }
-.btn.blue { background:#5b6abf; color:#fff; border-color:#5b6abf; }
-.btn.blue:hover { background:#4a59ad; }
-.btn.red { color:#d44; border-color:#fcc; }
-.btn.red:hover { background:#fff5f5; }
+/* ===== LAYOUT ===== */
+.container{max-width:1600px;margin:0 auto;padding:16px}
 
-/* 统计 */
-.stats { display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
-.stat { background:#fff; border-radius:10px; padding:14px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.06); display:flex; align-items:center; gap:12px; flex:1; min-width:150px; }
-.stat .n { font-size:1.5rem; font-weight:700; }
-.stat .l { font-size:0.73rem; color:#888; }
+/* ===== BUTTONS ===== */
+.btn{padding:7px 14px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:0.8rem;transition:all .15s;white-space:nowrap;font-family:inherit}
+.btn:hover{background:#f0f0f5}
+.btn:active{transform:scale(.97)}
+.btn-sm{padding:5px 10px;font-size:.73rem}
+.btn-primary{background:#5b6abf;color:#fff;border-color:#5b6abf}
+.btn-primary:hover{background:#4a59ad}
+.btn-danger{color:#d44;border-color:#fcc}
+.btn-danger:hover{background:#fff5f5}
+.btn-success{background:#2da87a;color:#fff;border-color:#2da87a}
+.btn-success:hover{background:#258d65}
 
-/* 卡片 */
-.card { background:#fff; border-radius:10px; padding:18px 22px; margin-bottom:14px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
-.card h2 { font-size:0.95rem; margin-bottom:12px; }
+/* ===== HEADER ===== */
+.header{background:linear-gradient(135deg,#5b6abf,#7c8cf8);color:#fff;border-radius:10px;padding:16px 24px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.header h1{font-size:1.3rem;font-weight:700}
+.header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.header .btn{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25)}
+.header .btn:hover{background:rgba(255,255,255,.25)}
+.header .btn-primary{background:rgba(255,255,255,.9);color:#5b6abf;font-weight:600}
+.sync-time{font-size:.73rem;color:rgba(255,255,255,.75);margin-left:4px}
 
-/* 甘特 */
-.gantt-box { overflow-x:auto; }
-.gantt { min-width:950px; }
-.gantt-head { display:flex; padding-left:150px; height:28px; border-bottom:1px solid #eee; }
-.gantt-head span { flex:1; text-align:center; font-size:0.65rem; color:#999; line-height:28px; border-left:1px solid #f0f0f0; }
-.gantt-row { display:flex; border-bottom:1px solid #f8f8f8; min-height:60px; }
-.gantt-row:hover { background:#fafbfd; }
-.gantt-label { width:150px; flex-shrink:0; padding:10px 12px; font-size:0.8rem; font-weight:600; border-right:2px solid #f0f0f0; display:flex; align-items:center; gap:8px; position:sticky; left:0; background:inherit; }
-.gantt-label .dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
-.gantt-track { flex:1; position:relative; min-height:60px; }
-.gantt-bar { position:absolute; top:6px; bottom:6px; border-radius:3px; cursor:pointer; display:flex; align-items:center; padding:0; overflow:visible; white-space:nowrap; font-size:0.68rem; color:#fff; font-weight:500; z-index:2; box-shadow:0 1px 2px rgba(0,0,0,0.1); transition:filter 0.12s; box-sizing:border-box; }
-.gantt-bar span { padding:0 5px; }
-.gantt-bar:hover { filter:brightness(1.15); z-index:20; }
+/* ===== STATS BAR ===== */
+.stats-bar{display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.stat-card{background:#fff;border-radius:10px;padding:14px 20px;box-shadow:0 1px 3px rgba(0,0,0,.06);display:flex;align-items:center;gap:12px;flex:1;min-width:140px}
+.stat-icon{font-size:1.5rem}
+.stat-num{font-size:1.5rem;font-weight:700}
+.stat-label{font-size:.73rem;color:#888}
 
-/* 表格 */
-.tbl-wrap { overflow-x:auto; }
-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
-th { background:#f8fafc; padding:8px 10px; text-align:left; font-weight:600; border-bottom:2px solid #eee; font-size:0.72rem; color:#888; white-space:nowrap; }
-td { padding:6px 10px; border-bottom:1px solid #f5f5f5; }
-tr:hover td { background:#fafcfd; }
-.inp { border:1px solid transparent; padding:3px 6px; border-radius:3px; font:inherit; background:transparent; width:100%; }
-.inp:hover { border-color:#ddd; }
-.inp:focus { border-color:#5b6abf; outline:none; background:#fff; }
-.inp.tm { width:90px; text-align:center; font-family:monospace; }
-.inp.rt { width:80px; text-align:center; font-weight:600; background:#fffef5; border-color:#e8d48b; }
-.sel { border:1px solid transparent; padding:3px; border-radius:3px; font:inherit; background:transparent; }
-.sel:hover { border-color:#ddd; }
+/* ===== CARD ===== */
+.card{background:#fff;border-radius:10px;padding:18px 22px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card h2{font-size:.95rem;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.card-actions{display:flex;gap:6px;align-items:center;font-weight:400}
 
-/* 工具栏 */
-.toolbar { display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
-.toolbar input[type="text"] { padding:6px 12px; border:1px solid #ddd; border-radius:6px; font-size:0.8rem; width:200px; }
-.toolbar input[type="text"]:focus { border-color:#5b6abf; outline:none; }
-.toolbar select { padding:6px 10px; border:1px solid #ddd; border-radius:6px; font-size:0.8rem; background:#fff; cursor:pointer; }
-.toolbar .info { font-size:0.73rem; color:#888; margin-left:auto; white-space:nowrap; }
-.toolbar .cb { width:16px; height:16px; cursor:pointer; accent-color:#5b6abf; }
-th.sortable { cursor:pointer; user-select:none; }
-th.sortable:hover { color:#5b6abf; }
-th.sortable .arrow { font-size:0.6rem; margin-left:2px; }
+/* ===== FILTER BAR ===== */
+.filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.filter-bar input[type="text"]{padding:6px 12px;border:1px solid #ddd;border-radius:6px;font-size:.8rem;width:200px;font-family:inherit}
+.filter-bar input[type="text"]:focus{border-color:#5b6abf;outline:none;box-shadow:0 0 0 2px rgba(91,106,191,.1)}
+.filter-bar select{padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:.8rem;background:#fff;cursor:pointer;font-family:inherit}
+.filter-info{font-size:.73rem;color:#888;margin-left:auto;white-space:nowrap}
 
-/* 弹窗 */
-.modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:500; justify-content:center; align-items:center; }
-.modal-bg.show { display:flex; }
-.modal-box { background:#fff; border-radius:12px; padding:24px; width:480px; max-height:80vh; overflow-y:auto; box-shadow:0 8px 30px rgba(0,0,0,0.15); }
-.modal-box h3 { font-size:1rem; margin-bottom:14px; }
-.modal-box .actions { display:flex; gap:6px; margin-bottom:10px; }
-.modal-box .pc-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #f5f5f5; font-size:0.82rem; }
-.modal-box .pc-row .n { color:#888; font-size:0.73rem; }
+/* ===== TABLE ===== */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+thead th{background:#f8fafc;padding:8px 10px;text-align:left;font-weight:600;border-bottom:2px solid #e8ecf0;font-size:.72rem;color:#888;white-space:nowrap;position:sticky;top:0;z-index:5}
+tbody td{padding:6px 10px;border-bottom:1px solid #f0f2f5}
+tbody tr:hover td{background:#fafbfe}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:#5b6abf}
+th.sortable .arrow{font-size:.6rem;margin-left:2px}
 
-/* 批量操作栏 */
-.batch-bar { display:none; position:sticky; bottom:0; background:#1a1d28; color:#fff; padding:10px 20px; border-radius:10px; margin-top:8px; align-items:center; gap:10px; }
-.batch-bar.show { display:flex; }
-.batch-bar select, .batch-bar input { padding:5px 10px; border-radius:5px; border:none; font-size:0.78rem; }
-.batch-bar .btn { background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.2); padding:5px 12px; font-size:0.75rem; }
+/* ===== INLINE INPUTS ===== */
+.inp-cell{border:1px solid transparent;padding:3px 6px;border-radius:4px;font:inherit;background:transparent;width:100%}
+.inp-cell:hover{border-color:#ddd}
+.inp-cell:focus{border-color:#5b6abf;outline:none;background:#fff}
+.inp-time{width:90px;text-align:center;font-family:monospace}
+.inp-runtime{width:70px;text-align:center;font-weight:600}
+.inp-cat{width:80px}
+select.inp-cell{cursor:pointer}
 
-/* 分类 */
-.cat-tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:0.7rem; font-weight:600; white-space:nowrap; }
-.cat-inp { width:80px; }
-.cat-stats { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
-.cat-stat { padding:4px 10px; border-radius:12px; font-size:0.72rem; cursor:pointer; border:1px solid #e0e0e0; background:#fafafa; transition:all 0.15s; }
-.cat-stat:hover { border-color:#5b6abf; background:#eef0fa; }
+/* ===== CHECKBOX ===== */
+.cb{width:16px;height:16px;cursor:pointer;accent-color:#5b6abf}
+.cb-wrap{display:inline-flex;align-items:center;gap:4px;font-size:.78rem}
 
-/* 提示 */
-.tooltip { position:fixed; z-index:999; background:#222; color:#fff; padding:10px 14px; border-radius:8px; font-size:0.8rem; pointer-events:none; opacity:0; transition:opacity 0.1s; }
-.tooltip.on { opacity:1; }
+/* ===== GANTT ===== */
+.gantt-box{overflow-x:auto}
+.gantt{min-width:950px}
+.gantt-head{display:flex;padding-left:150px;height:28px;border-bottom:1px solid #eee}
+.gantt-head span{flex:1;text-align:center;font-size:.63rem;color:#999;line-height:28px;border-left:1px solid #f0f0f0;user-select:none}
+.gantt-row{display:flex;border-bottom:1px solid #f8f8f8;min-height:56px}
+.gantt-row:hover{background:#fafbfd}
+.gantt-label{width:150px;flex-shrink:0;padding:8px 12px;font-size:.78rem;font-weight:600;border-right:2px solid #f0f0f0;display:flex;align-items:center;gap:8px;position:sticky;left:0;background:#fff;z-index:3}
+.gantt-label .dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.gantt-track{flex:1;position:relative;min-height:56px}
+.gantt-bar{position:absolute;top:8px;bottom:8px;border-radius:4px;cursor:pointer;display:flex;align-items:center;padding:0 4px;overflow:hidden;white-space:nowrap;font-size:.65rem;color:#fff;font-weight:500;z-index:2;box-shadow:0 1px 3px rgba(0,0,0,.12);transition:filter .12s,box-shadow .12s}
+.gantt-bar:hover{filter:brightness(1.12);z-index:20;box-shadow:0 3px 8px rgba(0,0,0,.2)}
+.gantt-bar.retry-enabled{border:2px dashed rgba(255,255,255,.5)}
+.gantt-bar.status-error{background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(0,0,0,.1) 4px,rgba(0,0,0,.1) 8px)}
+.gantt-bar.manual-task{border-radius:4px;border:1px dashed rgba(255,255,255,.6);box-shadow:0 0 0 2px rgba(255,255,255,.3)}
+
+.yd-status{margin-top:10px;font-size:.78rem;color:#888;min-height:20px}
+
+/* ===== STATUS BADGES ===== */
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:600;white-space:nowrap}
+.badge-running{background:#e3f2fd;color:#1565c0}
+.badge-done{background:#e8f5e9;color:#2e7d32}
+.badge-error{background:#ffebee;color:#c62828}
+.badge-timeout{background:#fff3e0;color:#e65100}
+.badge-stopped{background:#f3e5f5;color:#6a1b9a}
+.badge-retry{background:#fff8e1;color:#f57f17}
+.badge-waiting{background:#e3f2fd;color:#1565c0}
+
+/* ===== RETRY CONTROLS ===== */
+.retry-count{display:inline-block;padding:1px 6px;border-radius:8px;font-size:.68rem;font-weight:700;min-width:20px;text-align:center}
+.retry-count.active{background:#fff3e0;color:#e65100}
+.retry-count.zero{background:#f5f5f5;color:#999}
+.max-retry-inp{width:45px;text-align:center;padding:2px 4px;border:1px solid #ddd;border-radius:4px;font-size:.75rem}
+
+/* ===== RUN HISTORY ===== */
+.collapsible-header{cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px}
+.collapsible-header:hover{color:#5b6abf}
+#runHistoryPanel{overflow:hidden}
+#historyTable{font-size:.78rem}
+#historyTable td{font-size:.75rem}
+
+/* ===== BATCH BAR ===== */
+.batch-bar{display:none;position:sticky;bottom:0;background:#1a1d28;color:#fff;padding:10px 20px;border-radius:10px;margin-top:8px;align-items:center;gap:10px;z-index:50;flex-wrap:wrap}
+.batch-bar.show{display:flex}
+.batch-bar select,.batch-bar .btn{font-size:.73rem;font-family:inherit}
+
+/* ===== MODALS ===== */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:500;justify-content:center;align-items:center}
+.modal-bg.show{display:flex}
+.modal-box{background:#fff;border-radius:12px;padding:24px;width:520px;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.modal-box h3{font-size:1rem;margin-bottom:14px}
+.modal-box .actions{display:flex;gap:6px;margin-bottom:10px}
+.modal-box .row-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:.82rem}
+.modal-box .row-item .n{color:#888;font-size:.73rem}
+
+/* ===== TOOLTIP ===== */
+.tooltip{position:fixed;z-index:999;background:#1a1d28;color:#fff;padding:10px 14px;border-radius:8px;font-size:.78rem;pointer-events:none;opacity:0;transition:opacity .15s;max-width:320px}
+.tooltip.on{opacity:1}
+
+/* ===== CALLBACK INFO ===== */
+.callback-info{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.78rem}
+.callback-info code{background:#f0f0f5;padding:2px 8px;border-radius:4px;font-size:.73rem}
+
+/* ===== CATEGORY STATS ===== */
+.cat-stats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.cat-chip{display:inline-block;padding:2px 10px;border-radius:12px;background:#f0f0f5;font-size:.7rem;cursor:pointer;transition:all .15s;user-select:none}
+.cat-chip:hover{background:#5b6abf;color:#fff}
+.cat-chip.sel{background:#5b6abf;color:#fff}
+
+/* ===== TAB NAV ===== */
+.tab-nav{display:flex;gap:0;margin-bottom:14px;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.tab-nav button{flex:1;padding:12px 20px;border:none;background:transparent;cursor:pointer;font-size:.85rem;font-weight:600;color:#888;transition:all .15s;font-family:inherit;border-bottom:3px solid transparent}
+.tab-nav button:hover{color:#5b6abf;background:#f8fafc}
+.tab-nav button.active{color:#5b6abf;border-bottom-color:#5b6abf;background:#f8fafc}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:768px){
+  .container{padding:8px}
+  .header{flex-direction:column;align-items:flex-start}
+  .stats-bar{flex-direction:column}
+  .stat-card{min-width:auto}
+  .gantt-label{width:100px}
+  .gantt-head{padding-left:100px}
+  .modal-box{width:95vw}
+}
 </style>
 </head>
 <body>
 <div class="container">
 
-<div class="header">
-  <h1>📊 RPA 每日调度模板</h1>
-  <div class="btns">
-    <button class="btn blue" onclick="addTask()">＋ 添加任务</button>
-    <button class="btn" onclick="syncYingdao()" style="background:#e8f4fd;color:#0891b2;border-color:#b8e4f5;" title="从影刀同步运行状态">🔄 同步影刀</button>
-    <button class="btn" onclick="exportData()">📥 导出</button>
-    <button class="btn" onclick="document.getElementById('imp').click()">📤 导入</button>
-    <input type="file" id="imp" accept=".json" style="display:none" onchange="importData(event)">
-    <button class="btn" onclick="resetDemo()">🔄 重置</button>
+<!-- ===== HEADER ===== -->
+<header class="header">
+  <h1>📊 RPA 调度可视化</h1>
+  <div class="header-actions">
+    <button id="btnSync" class="btn btn-primary" onclick="syncYingdao()">🔄 同步影刀数据</button>
+    <span class="sync-time" id="lastSyncTime"></span>
+    <button class="btn" onclick="exportData()">📥 导出配置</button>
+    <button class="btn" onclick="document.getElementById('imp').click()">📤 导入配置</button>
+    <input type="file" id="imp" accept=".json" hidden onchange="importData(event)">
+    <button class="btn" onclick="resetAll()">🔄 重置</button>
   </div>
+</header>
+
+<!-- ===== STATS BAR ===== -->
+<div class="stats-bar" id="statsBar">
+  <div class="stat-card"><span class="stat-icon">📋</span><div class="stat-num" id="statTotal">0</div><div class="stat-label">总任务</div></div>
+  <div class="stat-card"><span class="stat-icon">✅</span><div class="stat-num" id="statEnabled">0</div><div class="stat-label">已启用</div></div>
+  <div class="stat-card"><span class="stat-icon">🖥</span><div class="stat-num" id="statPcs">0</div><div class="stat-label">电脑数</div></div>
 </div>
 
-<div class="stats" id="stats"></div>
-
-<div class="card">
-  <h2>📅 每日甘特图
-    <span style="font-weight:400;font-size:0.73rem;color:#999;margin-left:8px;">悬停看详情 · 双击改名称</span>
-    <span style="margin-left:auto;display:flex;align-items:center;gap:8px;">
-      <button class="btn" onclick="zoomOut()" title="缩小">🔍−</button>
-      <input type="range" id="zoomSlider" min="1" max="10" value="2" oninput="setZoom(this.value)" style="width:100px;">
-      <button class="btn" onclick="zoomIn()" title="放大">🔍+</button>
-      <span id="zoomLabel" style="font-size:0.75rem;font-weight:600;min-width:36px;">2×</span>
-    </span>
-  </h2>
-  <div class="gantt-box"><div class="gantt" id="gantt"></div></div>
-  <div id="ydStatus" style="margin-top:10px;font-size:0.78rem;color:#888;"></div>
-  <div style="margin-top:6px;font-size:0.7rem;color:#999;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-    <span>📡 回调地址：<code id="cbUrl" style="background:#f0f0f5;padding:2px 6px;border-radius:3px;font-size:0.7rem;">加载中...</code></span>
-    <button class="btn" style="padding:2px 8px;font-size:0.65rem;" onclick="copyCbUrl()">📋 复制</button>
-    <button class="btn" style="padding:2px 8px;font-size:0.65rem;" onclick="viewCallbacks()">📋 回调日志</button>
-  </div>
+<!-- ===== TAB NAV ===== -->
+<div class="tab-nav">
+  <button class="active" onclick="switchTab('yingdao')">📊 影刀任务</button>
+  <button onclick="switchTab('manual')">📝 手动任务</button>
+  <button onclick="switchTab('history')">📜 运行记录</button>
 </div>
 
+<!-- ===== TAB: 影刀任务 ===== -->
+<div class="tab-panel active" id="tab-yingdao">
+
+<!-- ===== FILTER TOOLBAR ===== -->
 <div class="card">
-  <h2>📝 任务列表</h2>
-  <!-- 工具栏 -->
-  <div class="toolbar" id="toolbar">
+  <div class="filter-bar">
     <input type="text" id="fSearch" placeholder="🔍 搜索流程或电脑..." oninput="applyFilters()">
     <select id="fPc" onchange="applyFilters()"><option value="">🖥 全部电脑</option></select>
-    <select id="fCat" onchange="applyFilters()"><option value="">🏷 全部分类</option></select>
+    <select id="fCategory" onchange="applyFilters()"><option value="">🏷 全部分类</option></select>
     <select id="fStatus" onchange="applyFilters()">
       <option value="">📌 全部状态</option>
-      <option value="运行中">运行中</option>
-      <option value="已暂停">已暂停</option>
-      <option value="已停止">已停止</option>
+      <option value="已启用">已启用</option>
+      <option value="已禁用">已禁用</option>
     </select>
-    <button class="btn" onclick="clearFilters()" title="清除筛选">✕</button>
-    <span class="info" id="filterInfo"></span>
-    <button class="btn" onclick="openPcManager()">🖥 管理电脑</button>
-    <button class="btn" onclick="openWhLog()">📋 Webhook 日志</button>
-    <input type="checkbox" class="cb" id="selectAll" onchange="toggleSelectAll()" title="全选">
+    <select id="fSourceType" onchange="applyFilters()">
+      <option value="">🔔 全部触发</option>
+      <option value="period">🕐 计划触发</option>
+      <option value="manual">👆 手动触发</option>
+    </select>
+    <button class="btn btn-sm" onclick="clearFilters()">✕ 清除筛选</button>
+    <span class="filter-info" id="filterInfo"></span>
   </div>
+  <!-- 分类快速筛选 -->
+  <div class="cat-stats" id="catStats"></div>
+</div>
+
+<!-- ===== TASK TABLE ===== -->
+<div class="card">
+  <h2>📝 任务列表
+    <span class="card-actions">
+      <button class="btn btn-sm btn-primary" onclick="addTask()">＋ 添加任务</button>
+      <button class="btn btn-sm" onclick="openPcManager()">🖥 管理电脑</button>
+      <button class="btn btn-sm" onclick="openCategoryManager()">🏷 管理分类</button>
+      <span class="cb-wrap"><input type="checkbox" id="selectAllHd" class="cb" onchange="toggleSelectAll()"><label>全选</label></span>
+    </span>
+  </h2>
   <div class="tbl-wrap">
-    <table>
+    <table id="taskTable">
       <thead><tr>
-        <th style="width:28px;"><input type="checkbox" class="cb" id="selectAllHd" onchange="toggleSelectAll()" title="全选"></th>
+        <th style="width:28px"><input type="checkbox" class="cb" id="selectAll" onchange="toggleSelectAll()"></th>
         <th>#</th>
-        <th>流程名称</th>
+        <th class="sortable" onclick="sortTable('process')">流程名称 <span class="arrow"></span></th>
         <th class="sortable" onclick="sortTable('category')">分类 <span class="arrow"></span></th>
         <th class="sortable" onclick="sortTable('pc')">电脑 <span class="arrow"></span></th>
         <th class="sortable" onclick="sortTable('start')">开始 <span class="arrow"></span></th>
         <th>结束</th>
         <th class="sortable" onclick="sortTable('runtime')">运行时间 <span class="arrow"></span></th>
-        <th>任务UUID</th>
-        <th class="sortable" onclick="sortTable('status')">状态 <span class="arrow"></span></th>
-        <th>Webhook</th><th style="width:42px;" title="同步影刀后自动重跑失败任务">自动<br>重跑</th><th>操作</th>
+        <th class="sortable" onclick="sortTable('status')">启用 <span class="arrow"></span></th>
+        <th>触发</th>
+        <th>最后运行</th>
+        <th class="sortable" onclick="sortTable('retryEnabled')">自动重试 <span class="arrow"></span></th>
+        <th>最大重试</th>
+        <th>已重试</th>
+        <th>操作</th>
       </tr></thead>
-      <tbody id="tbl"></tbody>
+      <tbody id="tblBody"></tbody>
     </table>
   </div>
-  <!-- 批量操作栏 -->
-  <datalist id="catList"></datalist>
-<div class="cat-stats" id="catStats"></div>
-<div class="batch-bar" id="batchBar">
+  <!-- Batch Bar -->
+  <div class="batch-bar" id="batchBar">
     <span id="batchCount">已选 0 项</span>
-    <select id="batchStatus" onchange="batchSetStatus(this.value);this.value='';">
-      <option value="">改状态...</option>
-      <option value="运行中">运行中</option>
-      <option value="已暂停">已暂停</option>
-      <option value="已停止">已停止</option>
-    </select>
-    <button class="btn" onclick="batchSetRuntime()">⏱ 批量设运行时间</button>
-    <button class="btn red" onclick="batchDelete()">🗑 批量删除</button>
-    <button class="btn" onclick="selected.clear(); render();">✕ 取消选择</button>
+    <button class="btn btn-sm" onclick="batchSetStatus('运行中')">▶ 批量运行中</button>
+    <button class="btn btn-sm" onclick="batchSetStatus('已停止')">⏸ 批量停止</button>
+    <button class="btn btn-sm btn-primary" onclick="batchSetRetry(true)">✅ 启用自动重试</button>
+    <button class="btn btn-sm" onclick="batchSetRetry(false)">❌ 禁用自动重试</button>
+    <button class="btn btn-sm btn-danger" onclick="batchDelete()">🗑 批量删除</button>
+    <button class="btn btn-sm" onclick="selected.clear();render()">✕ 取消选择</button>
   </div>
 </div>
 
-<!-- Webhook 日志弹窗 -->
-<div class="modal-bg" id="whModalBg" onclick="if(event.target===this)closeWhLog()">
-  <div class="modal-box">
-    <h3>📋 Webhook 触发日志 <span style="font-weight:400;font-size:0.73rem;color:#888;">（最近 50 条）</span></h3>
-    <div id="whLogs" style="max-height:400px;overflow-y:auto;"></div>
-    <button class="btn" onclick="closeWhLog()" style="margin-top:12px;width:100%;">关闭</button>
+<!-- ===== GANTT CHART ===== -->
+<div class="card">
+  <h2>📅 每日甘特图
+    <span class="card-actions">
+      <button class="btn btn-sm" onclick="zoomOut()">🔍−</button>
+      <input type="range" id="zoomSlider" min="1" max="10" value="2" oninput="setZoom(this.value)" style="width:100px">
+      <button class="btn btn-sm" onclick="zoomIn()">🔍+</button>
+      <span id="zoomLabel">2×</span>
+    </span>
+  </h2>
+  <div class="gantt-box">
+    <div class="gantt" id="gantt"></div>
   </div>
+  <div id="ydStatus" class="yd-status"></div>
 </div>
 
-<!-- 电脑管理弹窗 -->
-<div class="modal-bg" id="pcModalBg" onclick="if(event.target===this)closePcManager()">
-  <div class="modal-box">
-    <h3>🖥 管理电脑</h3>
-    <div class="actions">
-      <input type="text" id="newPcName" placeholder="新电脑名称" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.8rem;">
-      <button class="btn blue" onclick="addPc()">＋ 添加</button>
+</div><!-- /tab-yingdao -->
+
+<!-- ===== TAB: 手动任务 ===== -->
+<div class="tab-panel" id="tab-manual">
+<div class="card">
+  <h2>📝 手动任务
+    <span class="card-actions">
+      <button class="btn btn-sm btn-primary" onclick="addManualTask()">＋ 添加任务</button>
+      <span class="cb-wrap"><input type="checkbox" id="selectAllMd" class="cb" onchange="toggleSelectAllManual()"><label>全选</label></span>
+    </span>
+  </h2>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th style="width:28px"><input type="checkbox" class="cb" id="selectAllM" onchange="toggleSelectAllManual()"></th>
+        <th>流程名称</th>
+        <th>电脑</th>
+        <th>开始</th>
+        <th>结束</th>
+        <th>运行时间</th>
+        <th>触发方式</th>
+        <th>操作范围</th>
+        <th>启用</th>
+        <th>分类</th>
+        <th>操作</th>
+      </tr></thead>
+      <tbody id="manualBody"></tbody>
+    </table>
+  </div>
+</div>
+</div><!-- /tab-manual -->
+
+<!-- ===== TAB: 运行记录 ===== -->
+<div class="tab-panel" id="tab-history">
+
+<!-- ===== RUN HISTORY PANEL ===== -->
+<div class="card">
+  <h2>
+    <span class="collapsible-header" onclick="toggleRunHistory()">📜 运行记录 <span id="historyToggle">▼</span></span>
+    <span class="card-actions">
+      <span class="filter-info" id="historyInfo"></span>
+      <button class="btn btn-sm" onclick="refreshRunHistory()">🔄 刷新</button>
+      <button class="btn btn-sm btn-danger" onclick="clearHistory()">🗑 清空记录</button>
+    </span>
+  </h2>
+  <div id="runHistoryPanel">
+    <div class="filter-bar" style="margin-bottom:8px">
+      <input type="text" id="fHistorySearch" placeholder="🔍 搜索流程/电脑/消息..." oninput="refreshRunHistory()">
+      <select id="fHistoryStatus" onchange="refreshRunHistory()">
+        <option value="">全部状态</option>
+        <option value="已完成">已完成</option>
+        <option value="错误">错误</option>
+        <option value="超时">超时</option>
+        <option value="已停止">已停止</option>
+        <option value="已取消">已取消</option>
+        <option value="等待中">等待中</option>
+      </select>
+      <button class="btn btn-sm" onclick="loadMoreHistory()" id="btnLoadMore" style="display:none">加载更多...</button>
     </div>
-    <div id="pcList"></div>
-    <button class="btn" onclick="closePcManager()" style="margin-top:12px;width:100%;">关闭</button>
+    <div class="tbl-wrap">
+      <table id="historyTable">
+        <thead><tr>
+          <th>时间</th><th>来源</th><th>流程</th><th>电脑</th><th>状态</th><th>运行时长</th><th>消息</th><th>自动重试</th><th>操作</th>
+        </tr></thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
+<!-- ===== CALLBACK INFO ===== -->
+<div class="card callback-info">
+  <span>📡 回调地址：<code id="cbUrl">加载中...</code></span>
+  <button class="btn btn-sm" onclick="copyCbUrl()">📋 复制</button>
+  <button class="btn btn-sm" onclick="viewCallbacks()">📋 原始回调日志</button>
 </div>
+
+</div><!-- /container -->
+
+</div><!-- /tab-history -->
+
+<!-- ===== TOOLTIP ===== -->
 <div class="tooltip" id="tip"></div>
 
+<!-- ===== PC MANAGER MODAL ===== -->
+<div class="modal-bg" id="pcModalBg" onclick="if(event.target===this)closePcManager()">
+  <div class="modal-box" id="pcModalBox"></div>
+</div>
+
+<!-- ===== CATEGORY MANAGER MODAL ===== -->
+<div class="modal-bg" id="catModalBg" onclick="if(event.target===this)closeCategoryManager()">
+  <div class="modal-box" id="catModalBox"></div>
+</div>
+
+<!-- ===== CALLBACK LOG MODAL ===== -->
+<div class="modal-bg" id="cbLogModalBg" onclick="if(event.target===this)closeCbLog()">
+  <div class="modal-box" id="cbLogModalBox"></div>
+</div>
+
 <script>
-// ========== 数据 ==========
-const PC_COLORS = ['#5b6abf','#0891b2','#c026d3','#e05560','#e8a830','#8bc34a','#00bcd4'];
-const PROC_COLORS = ['#5b6abf','#8b5cf6','#e05560','#e8a830','#3b82b8','#8bc34a','#00bcd4','#ab47bc','#26a69a','#ff7043','#78909c','#ec407a'];
+// ============================================================
+// 全局状态
+// ============================================================
+const PC_COLORS = ['#5b6abf','#0891b2','#c026d3','#e05560','#e8a830','#8bc34a','#00bcd4','#ab47bc','#26a69a','#ff7043'];
 const pcol = {};
+function pcColor(name) { if(!pcol[name]) pcol[name]=PC_COLORS[Object.keys(pcol).length%PC_COLORS.length]; return pcol[name]; }
 
-function pc(n) { if(!pcol[n]) pcol[n]=PROC_COLORS[Object.keys(pcol).length%PROC_COLORS.length]; return pcol[n]; }
-
-const DEMO = [
-  {
-    "process": "清楚缓存记录",
-    "pc": "rpa4@szlc",
-    "start": "22:00",
-    "end": "22:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 1
-  },
-  {
-    "process": "优惠券巡检",
-    "pc": "rpa3@szlc",
-    "start": "01:30",
-    "end": "01:35",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 2
-  },
-  {
-    "process": "打样纸样保密抓取",
-    "pc": "rpa8@szlc",
-    "start": "00:30",
-    "end": "00:35",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 3
-  },
-  {
-    "process": "各平台-店铺综合评分抓取-新流程",
-    "pc": "rpa3@szlc",
-    "start": "17:00",
-    "end": "17:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 4
-  },
-  {
-    "process": "视频号-直播-数据大屏",
-    "pc": "rpa7@szlc",
-    "start": "10:00",
-    "end": "10:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 5
-  },
-  {
-    "process": "抖音加热-短视频",
-    "pc": "rpa7@szlc",
-    "start": "06:00",
-    "end": "06:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 6
-  },
-  {
-    "process": "快手-生意通-短视频-短视频列表",
-    "pc": "rpa7@szlc",
-    "start": "17:00",
-    "end": "17:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 7
-  },
-  {
-    "process": "视频号_加热平台_直播订单_标准",
-    "pc": "rpa6@szlc",
-    "start": "10:20",
-    "end": "10:25",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 8
-  },
-  {
-    "process": "视频号-加热平台-加热数据",
-    "pc": "rpa6@szlc",
-    "start": "10:00",
-    "end": "10:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 9
-  },
-  {
-    "process": "拼多多-订单导出-近3个月",
-    "pc": "rpa7@szlc",
-    "start": "01:00",
-    "end": "01:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 10
-  },
-  {
-    "process": "拼多多-售后导出",
-    "pc": "rpa7@szlc",
-    "start": "01:30",
-    "end": "01:35",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 11
-  },
-  {
-    "process": "快手-商品卡-商品卡概览-商品列表",
-    "pc": "rpa3@szlc",
-    "start": "13:10",
-    "end": "13:15",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 12
-  },
-  {
-    "process": "快手-直播-直播列表-大屏复盘",
-    "pc": "rpa3@szlc",
-    "start": "13:20",
-    "end": "13:25",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 13
-  },
-  {
-    "process": "抖音-直播-直播列表-直播大屏",
-    "pc": "rpa3@szlc",
-    "start": "13:30",
-    "end": "13:35",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 14
-  },
-  {
-    "process": "视频号-视频号助手-数据中心-直播数据-单场数据（更新后）",
-    "pc": "rpa3@szlc",
-    "start": "11:00",
-    "end": "11:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 15
-  },
-  {
-    "process": "抖音-商品卡-商品卡明细-商品卡列表",
-    "pc": "rpa6@szlc",
-    "start": "13:20",
-    "end": "13:25",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 16
-  },
-  {
-    "process": "小红书-商品-商品列表",
-    "pc": "rpa8@szlc",
-    "start": "07:00",
-    "end": "07:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 17
-  },
-  {
-    "process": "挂车视频表同步到数据库",
-    "pc": "rpa3@szlc",
-    "start": "02:00",
-    "end": "02:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 18
-  },
-  {
-    "process": "视频号-商品管理-商品列表",
-    "pc": "rpa3@szlc",
-    "start": "02:40",
-    "end": "02:45",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 19
-  },
-  {
-    "process": "款式总表4.0和聚水潭商品资料-同步到数据库",
-    "pc": "rpa7@szlc",
-    "start": "07:00",
-    "end": "07:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 20
-  },
-  {
-    "process": "小红书-数据-笔记数据-商品笔记明细",
-    "pc": "rpa3@szlc",
-    "start": "10:00",
-    "end": "10:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 21
-  },
-  {
-    "process": "视频号-用户ID信息提取-接口版",
-    "pc": "rpa3@szlc",
-    "start": "00:00",
-    "end": "00:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 22
-  },
-  {
-    "process": "抖音-罗盘-数据工厂-商品流量-交易明细",
-    "pc": "rpa6@szlc",
-    "start": "13:30",
-    "end": "13:35",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 23
-  },
-  {
-    "process": "小红书-商品数据-商品总览-商品列表",
-    "pc": "rpa3@szlc",
-    "start": "13:00",
-    "end": "13:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 24
-  },
-  {
-    "process": "抖店-商品评价管理",
-    "pc": "rpa3@szlc",
-    "start": "15:20",
-    "end": "15:25",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 25
-  },
-  {
-    "process": "小红书-商品评价管理",
-    "pc": "rpa3@szlc",
-    "start": "15:30",
-    "end": "15:35",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 26
-  },
-  {
-    "process": "快手-商品评价管理",
-    "pc": "rpa3@szlc",
-    "start": "15:40",
-    "end": "15:45",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 27
-  },
-  {
-    "process": "拼多多-商品评价管理",
-    "pc": "rpa7@szlc",
-    "start": "06:10",
-    "end": "06:15",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 28
-  },
-  {
-    "process": "百度优选-直播数据-数据概览-每日明细",
-    "pc": "rpa3@szlc",
-    "start": "08:00",
-    "end": "08:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 29
-  },
-  {
-    "process": "百度优选-直播数据-直播明细-数据大屏",
-    "pc": "rpa3@szlc",
-    "start": "11:30",
-    "end": "11:35",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 30
-  },
-  {
-    "process": "有赞-订单导出",
-    "pc": "rpa5@szlc",
-    "start": "00:40",
-    "end": "00:45",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 31
-  },
-  {
-    "process": "有赞-售后导出",
-    "pc": "rpa5@szlc",
-    "start": "01:00",
-    "end": "01:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 32
-  },
-  {
-    "process": "有赞-商品管理",
-    "pc": "rpa5@szlc",
-    "start": "01:30",
-    "end": "01:35",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 33
-  },
-  {
-    "process": "淘宝C店-售后导出",
-    "pc": "rpa5@szlc",
-    "start": "00:00",
-    "end": "00:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 34
-  },
-  {
-    "process": "抖音-罗盘-数据工厂-短视频明细",
-    "pc": "rpa8@szlc",
-    "start": "09:00",
-    "end": "09:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 35
-  },
-  {
-    "process": "有赞-用户ID信息提取",
-    "pc": "rpa5@szlc",
-    "start": "02:00",
-    "end": "02:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 36
-  },
-  {
-    "process": "淘宝C店-商品列表-更新后",
-    "pc": "rpa8@szlc",
-    "start": "01:00",
-    "end": "01:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 37
-  },
-  {
-    "process": "淘宝C店-用户ID抓取",
-    "pc": "rpa5@szlc",
-    "start": "11:00",
-    "end": "11:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 38
-  },
-  {
-    "process": "快手-商品-本店分析-商品列表",
-    "pc": "rpa5@szlc",
-    "start": "13:00",
-    "end": "13:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 39
-  },
-  {
-    "process": "仓库-销售出库单-顺丰未发货快递推送",
-    "pc": "rpa5@szlc",
-    "start": "10:00",
-    "end": "10:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 40
-  },
-  {
-    "process": "有赞-商品评价管理",
-    "pc": "rpa5@szlc",
-    "start": "02:10",
-    "end": "02:15",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 41
-  },
-  {
-    "process": "百度优选-商品评价管理",
-    "pc": "rpa5@szlc",
-    "start": "02:15",
-    "end": "02:20",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 42
-  },
-  {
-    "process": "淘宝(千牛)-商品评价管理",
-    "pc": "rpa5@szlc",
-    "start": "02:30",
-    "end": "02:35",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 43
-  },
-  {
-    "process": "有赞-客服会话记录",
-    "pc": "rpa5@szlc",
-    "start": "13:05",
-    "end": "13:10",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 44
-  },
-  {
-    "process": "百度优选-客服会话记录",
-    "pc": "rpa5@szlc",
-    "start": "13:10",
-    "end": "13:15",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 45
-  },
-  {
-    "process": "淘宝生意参谋-客服会话记录",
-    "pc": "rpa5@szlc",
-    "start": "13:15",
-    "end": "13:20",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 46
-  },
-  {
-    "process": "小红书-客服会话记录",
-    "pc": "rpa5@szlc",
-    "start": "13:20",
-    "end": "13:25",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 47
-  },
-  {
-    "process": "拼多多-客服会话记录",
-    "pc": "rpa5@szlc",
-    "start": "13:25",
-    "end": "13:30",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 48
-  },
-  {
-    "process": "快手快语-客服会话记录",
-    "pc": "rpa5@szlc",
-    "start": "13:30",
-    "end": "13:35",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 49
-  },
-  {
-    "process": "抖店飞鸽-客服会话记录",
-    "pc": "rpa5@szlc",
-    "start": "13:35",
-    "end": "13:40",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 50
-  },
-  {
-    "process": "百度优选-订单导出",
-    "pc": "rpa5@szlc",
-    "start": "02:50",
-    "end": "02:55",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 51
-  },
-  {
-    "process": "百度优选-售后导出",
-    "pc": "rpa5@szlc",
-    "start": "03:00",
-    "end": "03:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 52
-  },
-  {
-    "process": "百度优选-商品管理",
-    "pc": "rpa5@szlc",
-    "start": "03:20",
-    "end": "03:25",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 53
-  },
-  {
-    "process": "百度优选-用户ID提取",
-    "pc": "rpa5@szlc",
-    "start": "03:30",
-    "end": "03:35",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 54
-  },
-  {
-    "process": "百度优选-商品列表",
-    "pc": "rpa5@szlc",
-    "start": "05:30",
-    "end": "05:35",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 55
-  },
-  {
-    "process": "拼多多-商品列表",
-    "pc": "rpa5@szlc",
-    "start": "03:40",
-    "end": "03:45",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 56
-  },
-  {
-    "process": "淘宝直播店-数据-交易分析-商品构成",
-    "pc": "rpa5@szlc",
-    "start": "04:00",
-    "end": "04:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 57
-  },
-  {
-    "process": "淘宝生意参谋-内容-内容概况-作品分析-更新后",
-    "pc": "rpa5@szlc",
-    "start": "17:20",
-    "end": "17:25",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 58
-  },
-  {
-    "process": "淘宝生意参谋-商品-商品排行",
-    "pc": "rpa5@szlc",
-    "start": "04:30",
-    "end": "04:35",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 59
-  },
-  {
-    "process": "淘宝生意参谋-业务专区-手淘信息流",
-    "pc": "rpa5@szlc",
-    "start": "04:40",
-    "end": "04:45",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 60
-  },
-  {
-    "process": "淘宝生意参谋-客户-店铺页分析-商品详情页",
-    "pc": "rpa5@szlc",
-    "start": "14:40",
-    "end": "14:45",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 61
-  },
-  {
-    "process": "淘宝生意参谋-自助分析-分析空间-个人空间-取数报表",
-    "pc": "rpa5@szlc",
-    "start": "13:40",
-    "end": "13:45",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 62
-  },
-  {
-    "process": "商品直播选款LSEI每日快照生成",
-    "pc": "rpa5@szlc",
-    "start": "22:00",
-    "end": "22:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 63
-  },
-  {
-    "process": "淘宝C店-订单导出-报表生成",
-    "pc": "rpa7@szlc",
-    "start": "00:10",
-    "end": "00:15",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 64
-  },
-  {
-    "process": "淘宝C店-订单导出--手动生成报表",
-    "pc": "rpa7@szlc",
-    "start": "05:00",
-    "end": "05:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 65
-  },
-  {
-    "process": "商品库存数据_SPU同步到数据库",
-    "pc": "rpa2@szlc",
-    "start": "02:00",
-    "end": "02:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 66
-  },
-  {
-    "process": "抖音-西子-商品列表数据下载",
-    "pc": "rpa2@szlc",
-    "start": "10:00",
-    "end": "10:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 67
-  },
-  {
-    "process": "抖音（西子小老板娘）-带货分",
-    "pc": "rpa2@szlc",
-    "start": "10:10",
-    "end": "10:15",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 68
-  },
-  {
-    "process": "视频号(西子原创女装，西子，西子高端女装)-店铺分",
-    "pc": "rpa2@szlc",
-    "start": "10:20",
-    "end": "10:25",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 69
-  },
-  {
-    "process": "快手西子小老板娘-带货分",
-    "pc": "rpa2@szlc",
-    "start": "10:40",
-    "end": "10:45",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 70
-  },
-  {
-    "process": "小红书（玉西子，西子高端女装的店）-店铺分-更新后",
-    "pc": "rpa2@szlc",
-    "start": "10:50",
-    "end": "10:55",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 71
-  },
-  {
-    "process": "抖音罗盘经营-每日商品卡流量成交情况（更新2）",
-    "pc": "rpa2@szlc",
-    "start": "11:00",
-    "end": "11:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 72
-  },
-  {
-    "process": "客服日工作数据统计-小红书近105天-更新后",
-    "pc": "rpa2@szlc",
-    "start": "11:20",
-    "end": "11:25",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 73
-  },
-  {
-    "process": "抖音罗盘经营-商品-（商品概览，流量分析）",
-    "pc": "rpa2@szlc",
-    "start": "11:30",
-    "end": "11:35",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 74
-  },
-  {
-    "process": "小红书-订单导出-每日",
-    "pc": "rpa2@szlc",
-    "start": "00:30",
-    "end": "00:35",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 75
-  },
-  {
-    "process": "视频号-视频号助手-短视频_短视频分析_短视频明细",
-    "pc": "rpa2@szlc",
-    "start": "13:30",
-    "end": "13:35",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 76
-  },
-  {
-    "process": "抖音用户id信息",
-    "pc": "rpa2@szlc",
-    "start": "00:00",
-    "end": "00:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 77
-  },
-  {
-    "process": "小红书千帆-数据-直播场次-数据大屏",
-    "pc": "rpa2@szlc",
-    "start": "11:40",
-    "end": "11:45",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 78
-  },
-  {
-    "process": "各平台-店铺综合评分抓取（无微信小店）",
-    "pc": "rpa2@szlc",
-    "start": "12:00",
-    "end": "12:05",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 79
-  },
-  {
-    "process": "微信小店-客服会话记录-商品评价管理-评分抓取（结合版）",
-    "pc": "rpa7@szlc",
-    "start": "10:03",
-    "end": "10:08",
-    "runtime": 300,
-    "status": "运行中",
-    "id": 80
-  }
-];
-
-// 数据加载：服务器 → localStorage → 演示数据
-let tasks, nid;
+let tasks = [];
+let nid = 1;
 let apiAvailable = false;
+let zoom = 2;
+let filters = { search:'', pc:'', category:'', status:'', sourceType:'' };
+let sortBy = 'start';
+let sortAsc = true;
+let selected = new Set();
+let lastSyncTime = '';
+let historyPage = 1;
+const HISTORY_PER_PAGE = 50;
 
+let currentTab = 'yingdao';
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-nav button').forEach((b,i) => {
+    b.classList.toggle('active', ['yingdao','manual','history'][i] === tab);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.classList.toggle('active', p.id === 'tab-' + tab);
+  });
+  if (tab === 'history') refreshRunHistory();
+  if (tab === 'manual') renderManual();
+}
+
+// ============================================================
+// 工具函数
+// ============================================================
+const t2m = s => { const [h,m]=String(s||'00:00').split(':').map(Number); return h*60+m; };
+const m2t = m => { m=((m%1440)+1440)%1440; return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); };
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fmDuration = s => { if(!s||s<=0)return'0秒'; const h=Math.floor(s/3600),m=Math.floor((s%3600)/60); return h>0?h+'时'+(m?m+'分':''):m>0?m+'分':s+'秒'; };
+const iso2time = iso => { if(!iso) return ''; try { const d=new Date(iso); return d.toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}); } catch(e) { return iso; } };
+
+function statusBadge(status) {
+  const map = {
+    '运行中':'badge-running','已完成':'badge-done','错误':'badge-error',
+    '超时':'badge-timeout','已停止':'badge-stopped','已取消':'badge-stopped',
+    '等待中':'badge-waiting','停止中':'badge-stopped',
+    'retry_queued':'badge-retry','retry_failed':'badge-error'
+  };
+  const cls = map[status] || '';
+  return `<span class="badge ${cls}">${esc(status||'未知')}</span>`;
+}
+
+// ============================================================
+// 数据加载与持久化
+// ============================================================
 async function loadData() {
-  // 1. 尝试从服务器加载
   try {
     const res = await fetch('/api/tasks');
     const json = await res.json();
-    apiAvailable = true; // API 可达就标记
-    if (json.success && json.data && json.data.tasks) {
-      tasks = json.data.tasks;
-      nid = json.data.nid;
+    apiAvailable = true;
+    if (json.success && json.data) {
+      tasks = json.data.tasks || [];
+      nid = json.data.nid || 1;
       return;
     }
-  } catch(e) { /* 服务器不可用，apiAvailable 保持 false */ }
-
-  // 2. 服务器不可用，用 localStorage
-  const saved = localStorage.getItem('rpa_tasks');
+  } catch(e) { apiAvailable = false; }
+  const saved = localStorage.getItem('rpa_tasks_v2');
   if (saved) {
-    try { const d = JSON.parse(saved); tasks = d.tasks; nid = d.nid; return; }
-    catch(e) {}
+    try { const d = JSON.parse(saved); tasks = d.tasks || []; nid = d.nid || 1; return; } catch(e) {}
   }
-
-  // 3. 都没有，用演示数据
-  tasks = JSON.parse(JSON.stringify(DEMO));
-  nid = 81;
+  tasks = []; nid = 1;
 }
 
 function saveData() {
-  const data = JSON.stringify({tasks, nid});
-  // 存服务器
+  const payload = JSON.stringify({tasks, nid});
   if (apiAvailable) {
-    fetch('/api/tasks', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: data
-    }).catch(() => {});
+    fetch('/api/tasks', {method:'POST', headers:{'Content-Type':'application/json'}, body:payload}).catch(()=>{});
   }
-  // 同时存 localStorage 兜底
-  localStorage.setItem('rpa_tasks', data);
+  localStorage.setItem('rpa_tasks_v2', payload);
 }
 
-let zoom = 2;
-let filters = { search: '', pc: '', category: '', status: '' };
-let sortBy = 'start', sortAsc = true;
-let selected = new Set();
-
+// ============================================================
+// 筛选与排序
+// ============================================================
 function filteredTasks() {
   let result = tasks.filter(t => {
+    if (currentTab === 'yingdao' && t.taskType !== 'yingdao') return false;
+    if (currentTab === 'manual' && t.taskType !== 'manual') return false;
     const s = filters.search.toLowerCase();
-    if (s && !t.process.toLowerCase().includes(s) && !t.pc.toLowerCase().includes(s)) return false;
+    if (s && !(t.process||'').toLowerCase().includes(s) && !(t.pc||'').toLowerCase().includes(s) && !(t.robotName||'').toLowerCase().includes(s)) return false;
     if (filters.pc && t.pc !== filters.pc) return false;
     if (filters.category && t.category !== filters.category) return false;
     if (filters.status && t.status !== filters.status) return false;
+    if (filters.sourceType && t.sourceType !== filters.sourceType) return false;
     return true;
   });
-  result.sort((a, b) => {
+  result.sort((a,b) => {
     let va, vb;
-    if (sortBy === 'start') { va = t2m(a.start); vb = t2m(b.start); }
-    else if (sortBy === 'runtime') { va = a.runtime || 0; vb = b.runtime || 0; }
-    else if (sortBy === 'category') { va = a.category||''; vb = b.category||''; }
-    else if (sortBy === 'pc') { va = a.pc; vb = b.pc; }
-    else if (sortBy === 'status') { va = a.status; vb = b.status; }
-    else { va = a.process; vb = b.process; }
-    if (typeof va === 'string') return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+    if (sortBy === 'start') { va=t2m(a.start); vb=t2m(b.start); }
+    else if (sortBy === 'runtime') { va=a.runtime||0; vb=b.runtime||0; }
+    else if (sortBy === 'category') { va=a.category||''; vb=b.category||''; }
+    else if (sortBy === 'pc') { va=a.pc||''; vb=b.pc||''; }
+    else if (sortBy === 'status') { va=a.status||''; vb=b.status||''; }
+    else if (sortBy === 'process') { va=a.process||''; vb=b.process||''; }
+    else if (sortBy === 'retryEnabled') { va=a.retryEnabled?1:0; vb=b.retryEnabled?1:0; }
+    else { va=a.process||''; vb=b.process||''; }
+    if (typeof va === 'string') return sortAsc ? va.localeCompare(vb,'zh') : vb.localeCompare(va,'zh');
     return sortAsc ? va - vb : vb - va;
   });
   return result;
@@ -1016,22 +496,24 @@ function filteredTasks() {
 function applyFilters() {
   filters.search = document.getElementById('fSearch').value;
   filters.pc = document.getElementById('fPc').value;
-  filters.category = document.getElementById('fCat').value;
+  filters.category = document.getElementById('fCategory').value;
   filters.status = document.getElementById('fStatus').value;
+  filters.sourceType = document.getElementById('fSourceType').value;
   selected.clear();
   render();
 }
+
 function clearFilters() {
-  document.getElementById('fSearch').value = '';
-  document.getElementById('fPc').value = '';
-  document.getElementById('fCat').value = '';
-  document.getElementById('fStatus').value = '';
+  ['fSearch','fPc','fCategory','fStatus','fSourceType'].forEach(id => document.getElementById(id).value = '');
   applyFilters();
 }
+
 function sortTable(col) {
-  if (sortBy === col) sortAsc = !sortAsc; else { sortBy = col; sortAsc = true; }
+  if (sortBy === col) sortAsc = !sortAsc;
+  else { sortBy = col; sortAsc = true; }
   render();
 }
+
 function toggleSelectAll() {
   const f = filteredTasks();
   if (selected.size === f.length && f.length > 0) selected.clear();
@@ -1039,397 +521,673 @@ function toggleSelectAll() {
   render();
 }
 
-function setZoom(v) {
-  zoom = parseInt(v);
-  document.getElementById('zoomSlider').value = zoom;
-  document.getElementById('zoomLabel').textContent = zoom+'×';
+function toggleSel(id) {
+  if (selected.has(id)) selected.delete(id); else selected.add(id);
   render();
 }
-function zoomIn() { if(zoom<10) setZoom(zoom+1); }
-function zoomOut() { if(zoom>1) setZoom(zoom-1); }
 
-// ========== 工具 ==========
-const t2m = s => { const [h,m]=s.split(':').map(Number); return h*60+m; };
-const m2t = m => { m=((m%1440)+1440)%1440; return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); };
-const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const fm = s => { if(!s||s<=0)return'0s'; const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),v=s%60; return h>0?h+'h'+(m?m+'m':''):m>0?m+'m'+(v?v+'s':''):v+'s'; };
-
-// ========== 渲染 ==========
+// ============================================================
+// 渲染引擎
+// ============================================================
 function render() {
   const filtered = filteredTasks();
-  // 甘特图数据：只显示活跃任务（但筛选状态为"已停止"时也显示）
-  const ganttData = filters.status ? filtered : filtered.filter(t => t.status !== '已停止');
-
-  // 统计
-  const active = tasks.filter(t => t.status !== '已停止');
-  const total=active.length, ts=active.reduce((s,t)=>s+(t.runtime||0),0);
-  const pcs=new Set(active.map(t=>t.pc)), prs=new Set(active.map(t=>t.process));
-  document.getElementById('stats').innerHTML=
-    '<div class="stat"><span style="font-size:1.6rem;">📋</span><div><div class="n">'+total+'</div><div class="l">活跃任务</div></div></div>'+
-    '<div class="stat"><span style="font-size:1.6rem;">⏱</span><div><div class="n">'+fm(ts)+'</div><div class="l">总运行时间</div></div></div>'+
-    '<div class="stat"><span style="font-size:1.6rem;">🖥</span><div><div class="n">'+pcs.size+'</div><div class="l">电脑数</div></div></div>'+
-    '<div class="stat"><span style="font-size:1.6rem;">🔀</span><div><div class="n">'+prs.size+'</div><div class="l">流程数</div></div></div>';
-
-  // 甘特图 + 缩放
-  const grp={}; ganttData.forEach(t=>{ if(!grp[t.pc])grp[t.pc]=[]; grp[t.pc].push(t); });
-  const plist=Object.keys(grp).sort();
-  const zw = 100 * zoom;
-  let g='<div class="gantt-head" style="min-width:'+(zoom*950)+'px;">';
-  if(zoom<=2){
-    for(let h=0;h<24;h++) g+='<span>'+String(h).padStart(2,'0')+':00</span>';
-  } else {
-    for(let h=0;h<24;h++){
-      g+='<span>'+String(h).padStart(2,'0')+':00</span>';
-      g+='<span style="font-size:0.55rem;">'+String(h).padStart(2,'0')+':30</span>';
-    }
-  }
-  g+='</div>';
-  plist.forEach((pcName,i)=>{
-    const items=grp[pcName].sort((a,b)=>t2m(a.start)-t2m(b.start));
-    g+='<div class="gantt-row" style="min-width:'+(zoom*950)+'px;"><div class="gantt-label"><span class="dot" style="background:'+PC_COLORS[i%7]+';"></span>'+esc(pcName)+'</div><div class="gantt-track">';
-    items.forEach(task=>{
-      const s=t2m(task.start);
-      const lp=(s/1440)*zw;
-      const rt=task.runtime||0;
-      const wp=(rt/86400)*zw;
-      const c=pc(task.process);
-      g+='<div class="gantt-bar" style="left:'+lp+'%;width:'+wp+'%;background:'+c+';" '+
-        'onmouseenter="shTip(event,'+task.id+')" onmouseleave="hiTip()" ondblclick="edProc('+task.id+')" '+
-        'title="'+esc(task.process)+' | '+task.start+'-'+task.end+' | '+fm(rt)+'">'+
-        (wp>=1?esc(task.process):'')+'</div>';
-    });
-    g+='</div></div>';
-  });
-  document.getElementById('gantt').innerHTML=g;
-
-  // 表格
-  document.getElementById('tbl').innerHTML=filtered.map((t,i)=>{
-    const c=pc(t.process);
-    const stopped = t.status==='已停止';
-    const chk = selected.has(t.id) ? ' checked' : '';
-    return '<tr id="row-'+t.id+'"'+(stopped?' style="opacity:0.4;text-decoration:line-through;"':'')+'>'+
-      '<td><input type="checkbox" class="cb" onchange="toggleSel('+t.id+')"'+chk+'></td>'+
-      '<td>'+(i+1)+'</td>'+
-      '<td>'+
-        // 影刀运行状态指示
-        (ydCache[t.process] ? (ydCache[t.process].status===3||ydCache[t.process].status==='失败'||ydCache[t.process].error
-          ? '<span title="失败: '+esc(ydCache[t.process].error||'')+'" style="cursor:pointer;color:#e05560;" onclick="rerunFailed('+t.id+')">❌</span> '
-          : '<span title="运行正常">✅</span> ') : '')+
-      '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+c+';margin-right:5px;"></span>'+
-      '<input class="inp" value="'+esc(t.process)+'" onchange="upd('+t.id+',\'process\',this.value)" style="width:150px;font-weight:500;"></td>'+
-      '<td><input class="inp cat-inp" list="catList" value="'+(t.category||'')+'" onchange="upd('+t.id+',\'category\',this.value)" placeholder="分类"></td>'+
-      '<td><input class="inp" value="'+esc(t.pc)+'" onchange="upd('+t.id+',\'pc\',this.value)" style="width:95px;"></td>'+
-      '<td><input class="inp tm" type="time" value="'+t.start+'" onchange="upd('+t.id+',\'start\',this.value)"></td>'+
-      '<td><input class="inp tm" type="time" value="'+t.end+'" onchange="upd('+t.id+',\'end\',this.value)"></td>'+
-      '<td><input class="inp rt" type="number" value="'+(t.runtime||'')+'" placeholder="秒" min="0" onblur="upd('+t.id+',\'runtime\',parseInt(this.value)||0)" onkeydown="if(event.key===\'Enter\')this.blur()"></td>'+
-      '<td><input class="inp" value="'+(t.scheduleUuid||'')+'" onchange="upd('+t.id+',\'scheduleUuid\',this.value)" placeholder="UUID" style="width:110px;font-size:0.68rem;" title="影刀调度任务UUID，用于重跑"></td>'+
-      '<td><select class="sel" onchange="upd('+t.id+',\'status\',this.value)"><option'+(t.status==='运行中'?' selected':'')+'>运行中</option><option'+(t.status==='已暂停'?' selected':'')+'>已暂停</option><option'+(t.status==='已停止'?' selected':'')+'>已停止</option></select></td>'+
-      '<td style="text-align:center;">'+
-        '<input class="inp" value="'+(t.webhook||'')+'" onchange="upd('+t.id+',\'webhook\',this.value)" placeholder="URL" style="width:80px;font-size:0.7rem;" title="Webhook 地址">'+
-        '<button style="margin-left:2px;padding:2px 6px;font-size:0.65rem;cursor:pointer;background:#5b6abf;color:#fff;border:none;border-radius:3px;" '+
-        'onclick="triggerWh('+t.id+')" title="手动触发">⚡</button></td>'+
-      '<td style="text-align:center;"><input type="checkbox" class="cb" '+(t.autoRerun?'checked':'')+' onchange="upd('+t.id+',\'autoRerun\',this.checked)" title="同步后自动重跑失败任务"></td>'+
-      '<td><button class="btn red" style="padding:3px 8px;font-size:0.7rem;" onclick="del('+t.id+')">🗑</button></td></tr>';
-  }).join('') || '<tr><td colspan="12" style="text-align:center;padding:40px;color:#ccc;">无匹配结果</td></tr>';
-
-  // 筛选信息 + 批量栏
-  // 分类统计 + 数据列表
-  const catMap = {};
-  tasks.forEach(t => { const c = t.category||'未分类'; catMap[c] = (catMap[c]||0)+1; });
-  document.getElementById('catStats').innerHTML = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).map(([c,n])=>
-    '<span class="cat-stat" onclick="document.getElementById(\'fCat\').value=\''+esc(c)+'\';applyFilters();" title="筛选此分类">🏷 '+esc(c)+' <b>'+n+'</b></span>'
-  ).join('');
-  const cats = Object.keys(catMap).filter(c=>c!=='未分类').sort();
-  document.getElementById('catList').innerHTML = cats.map(c=>'<option value="'+esc(c)+'">').join('');
-  document.getElementById('fCat').innerHTML = '<option value="">🏷 全部分类</option>'+cats.map(c=>'<option'+(c===filters.category?' selected':'')+'>'+c+'</option>').join('');
-
-  document.getElementById('filterInfo').textContent = '显示 '+filtered.length+' / '+tasks.length+' 条';
-  const bar = document.getElementById('batchBar');
-  if (selected.size > 0) { bar.classList.add('show'); document.getElementById('batchCount').textContent = '已选 '+selected.size+' 项'; }
-  else bar.classList.remove('show');
-  // 下拉选项更新
-  const pcSel = document.getElementById('fPc');
-  const cur = pcSel.value;
-  const allPcs = [...new Set(tasks.map(t=>t.pc))].sort();
-  pcSel.innerHTML = '<option value="">🖥 全部电脑</option>'+allPcs.map(p=>'<option'+(p===cur?' selected':'')+'>'+p+'</option>').join('');
-  document.getElementById('selectAll').checked = filtered.length > 0 && selected.size === filtered.length;
-  document.getElementById('selectAllHd').checked = filtered.length > 0 && selected.size === filtered.length;
-
+  renderStats(filtered);
+  renderGantt(filtered);
+  renderTable(filtered);
+  renderFilters(filtered);
+  renderBatchBar();
+  renderCatStats();
   saveData();
 }
 
-function toggleSel(id) { if(selected.has(id))selected.delete(id); else selected.add(id); render(); }
+function renderStats(filtered) {
+  document.getElementById('statTotal').textContent = tasks.length;
+  document.getElementById('statEnabled').textContent = tasks.filter(t => t.status==='已启用' && t.taskType==='yingdao').length;
+  document.getElementById('statPcs').textContent = new Set(tasks.map(t=>t.pc).filter(p=>p)).size;
+}
 
-// ========== 操作 ==========
+function renderGantt(filtered) {
+  const ganttData = tasks.filter(t => t.status === '已启用');
+  const grp = {}; ganttData.forEach(t => { if(!grp[t.pc]) grp[t.pc]=[]; grp[t.pc].push(t); });
+  const plist = Object.keys(grp).sort();
+  const zw = 100 * zoom;
+  const slotsPerHr = zoom <= 2 ? 1 : 2;
+
+  let html = `<div class="gantt-head" style="min-width:${zoom*950}px;">`;
+  for (let h = 0; h < 24; h++) {
+    html += `<span>${String(h).padStart(2,'0')}:00</span>`;
+    if (slotsPerHr === 2) html += `<span style="font-size:0.55rem;">${String(h).padStart(2,'0')}:30</span>`;
+  }
+  html += '</div>';
+
+  if (plist.length === 0) {
+    html += '<div style="color:#ccc;padding:32px;text-align:center;">暂无甘特图数据 — 点击「🔄 同步影刀数据」拉取任务</div>';
+  }
+
+  plist.forEach((pcName, i) => {
+    const items = grp[pcName].sort((a,b) => t2m(a.start) - t2m(b.start));
+    html += `<div class="gantt-row" style="min-width:${zoom*950}px;">`;
+    html += `<div class="gantt-label"><span class="dot" style="background:${PC_COLORS[i%PC_COLORS.length]};"></span>${esc(pcName)} <small style="color:#999;font-weight:400;">${items.length}个</small></div>`;
+    html += `<div class="gantt-track">`;
+
+    items.forEach(task => {
+      const s = t2m(task.start || '00:00');
+      const lp = (s / 1440) * zw;
+      const rt = task.runtime || 0;
+      const wp = (rt / 86400) * zw;
+      const c = pcColor(task.process || '');
+      const isError = ['错误','超时','已取消'].includes(task.runStatus||'');
+      const isManual = task.taskType === 'manual';
+      const extraClass = (isError ? ' status-error' : '') + (task.retryEnabled ? ' retry-enabled' : '') + (isManual ? ' manual-task' : '');
+      html += `<div class="gantt-bar${extraClass}" style="left:${lp}%;width:${Math.max(wp,0.2)}%;background:${c};"
+        onmouseenter="shTip(event,${task.id})" onmouseleave="hiTip()"
+        ondblclick="renameProcess(${task.id})"
+        title="${esc(task.process||'')} | ${task.start||'--'} - ${task.end||'--'} | ${fmDuration(rt)} | ${task.status||''}">`;
+      if (wp >= 0.8) html += `<span>${esc(task.process||'')}</span>`;
+      html += '</div>';
+    });
+
+    html += '</div></div>';
+  });
+  document.getElementById('gantt').innerHTML = html;
+}
+
+function renderTable(filtered) {
+  const body = document.getElementById('tblBody');
+  if (filtered.length === 0) {
+    body.innerHTML = `<tr><td colspan="15" style="text-align:center;padding:40px;color:#ccc;">无匹配结果 — 点击「🔄 同步影刀数据」拉取任务</td></tr>`;
+    document.getElementById('filterInfo').textContent = `显示 0 / ${tasks.length} 条`;
+    return;
+  }
+
+  body.innerHTML = filtered.map((t, i) => {
+    const c = pcColor(t.process || '');
+    const stopped = t.status === '已停止';
+    const chk = selected.has(t.id) ? ' checked' : '';
+    const retryActive = t.retryEnabled && (t.retryCount || 0) > 0;
+    return `<tr id="row-${t.id}"${stopped?' style="opacity:0.5;"':''}>
+      <td><input type="checkbox" class="cb" onchange="toggleSel(${t.id})"${chk}></td>
+      <td>${i+1}</td>
+      <td>
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};margin-right:4px;flex-shrink:0;"></span>
+        <input class="inp-cell" value="${esc(t.process||'')}" onchange="upd(${t.id},'process',this.value)" style="min-width:140px;font-weight:500;">
+      </td>
+      <td><input class="inp-cell inp-cat" list="catDatalist" value="${esc(t.category||'')}" onchange="upd(${t.id},'category',this.value)" placeholder="分类"></td>
+      <td><input class="inp-cell" value="${esc(t.pc||'')}" onchange="upd(${t.id},'pc',this.value)" style="width:95px;"></td>
+      <td><input class="inp-cell inp-time" type="time" value="${t.start||'09:00'}" onchange="upd(${t.id},'start',this.value)"></td>
+      <td><input class="inp-cell inp-time" type="time" value="${t.end||'09:05'}" onchange="upd(${t.id},'end',this.value)"></td>
+      <td><input class="inp-cell inp-runtime" type="number" value="${t.runtime||0}" placeholder="秒" min="0" onblur="upd(${t.id},'runtime',parseInt(this.value)||0)" onkeydown="if(event.key==='Enter')this.blur()"></td>
+      <td><select class="inp-cell" onchange="upd(${t.id},'status',this.value)">
+        <option${t.status==='已启用'?' selected':''}>已启用</option>
+        <option${t.status==='已禁用'?' selected':''}>已禁用</option>
+      </select></td>
+      <td style="text-align:center;">${t.sourceType==='period'?'🕐 计划':'👆 手动'}</td>
+      <td style="font-size:0.7rem;color:#888;">${iso2time(t.lastRun)||'--'}</td>
+      <td style="text-align:center;">
+        <input type="checkbox" class="cb" ${t.retryEnabled?'checked':''} onchange="upd(${t.id},'retryEnabled',this.checked)" title="失败时自动重试">
+      </td>
+      <td style="text-align:center;">
+        <input class="max-retry-inp" type="number" value="${t.maxRetry||3}" min="1" max="10" onchange="upd(${t.id},'maxRetry',parseInt(this.value)||3)" title="最大重试次数">
+      </td>
+      <td style="text-align:center;">
+        <span class="retry-count ${retryActive?'active':'zero'}" title="当前已重试次数">${t.retryCount||0}</span>
+      </td>
+      <td>
+        <button class="btn btn-sm btn-primary" onclick="startTask(${t.id})" title="启动任务">▶</button>
+        <button class="btn btn-sm btn-danger" onclick="del(${t.id})" title="删除">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+  document.getElementById('filterInfo').textContent = `显示 ${filtered.length} / ${tasks.length} 条`;
+}
+
+function renderFilters(filtered) {
+  const allPcs = [...new Set(tasks.map(t=>t.pc))].sort();
+  const pcSel = document.getElementById('fPc');
+  const curPc = pcSel.value;
+  pcSel.innerHTML = '<option value="">🖥 全部电脑</option>' + allPcs.map(p => `<option${p===curPc?' selected':''}>${esc(p)}</option>`).join('');
+
+  const cats = [...new Set(tasks.map(t=>t.category||''))].filter(c=>c).sort();
+  const catSel = document.getElementById('fCategory');
+  const curCat = catSel.value;
+  catSel.innerHTML = '<option value="">🏷 全部分类</option>' + cats.map(c => `<option${c===curCat?' selected':''}>${esc(c)}</option>`).join('');
+
+  let dl = document.getElementById('catDatalist');
+  if (!dl) { dl = document.createElement('datalist'); dl.id = 'catDatalist'; document.body.appendChild(dl); }
+  dl.innerHTML = cats.map(c => `<option value="${esc(c)}">`).join('');
+
+  const allChecked = filtered.length > 0 && selected.size === filtered.length;
+  document.getElementById('selectAll').checked = allChecked;
+  document.getElementById('selectAllHd').checked = allChecked;
+}
+
+function renderBatchBar() {
+  const bar = document.getElementById('batchBar');
+  if (selected.size > 0) {
+    bar.classList.add('show');
+    document.getElementById('batchCount').textContent = `已选 ${selected.size} 项`;
+  } else {
+    bar.classList.remove('show');
+  }
+}
+
+function renderCatStats() {
+  const cats = {};
+  tasks.forEach(t => { const c = t.category || '未分类'; cats[c] = (cats[c]||0)+1; });
+  const cur = filters.category;
+  document.getElementById('catStats').innerHTML = Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v]) =>
+    `<span class="cat-chip${k===cur?' sel':''}" onclick="document.getElementById('fCategory').value='${esc(k)}';applyFilters()">${esc(k)} (${v})</span>`
+  ).join('');
+}
+
+// ============================================================
+// 任务 CRUD
+// ============================================================
 function upd(id, field, value) {
-  const t=tasks.find(x=>x.id===id); if(!t) return;
-  t[field]=value;
-  if(field==='start'||field==='end'){ const s=t2m(t.start),e=t2m(t.end); t.runtime=Math.max(0,(e-s)*60); }
-  if(field==='runtime') t.end=m2t(t2m(t.start)+Math.ceil(value/60));
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  t[field] = value;
+  if (field === 'start' || field === 'end') {
+    const s = t2m(t.start || '00:00'), e = t2m(t.end || '00:00');
+    t.runtime = Math.max(0, (e - s) * 60);
+  }
+  if (field === 'runtime') {
+    t.end = m2t(t2m(t.start || '00:00') + Math.ceil((value || 0) / 60));
+  }
   render();
+  if (currentTab === 'manual') renderManual();
 }
 
 function addTask() {
-  const pcs=[...new Set(tasks.map(t=>t.pc))];
-  const nt = {id:nid++, process:'新流程', pc:pcs[0]||'电脑A', start:'09:00', end:'09:30', runtime:1800, status:'运行中'};
-  tasks.unshift(nt); // 插到最前面，方便看到
+  const pcs = [...new Set(tasks.map(t => t.pc))];
+  const nt = {
+    id: nid++, scheduleUuid: '', robotUuid: '', robotName: '',
+    process: '新流程', pc: pcs[0] || '电脑A',
+    start: '09:00', end: '09:30', runtime: 1800,
+    status: '已启用', runStatus: '', lastRun: '', runTimes: 0,
+    category: '', retryEnabled: false, maxRetry: 3, retryCount: 0, sourceType: '',
+    taskType: 'yingdao', triggerMethod: '', operationScope: ''
+  };
+  tasks.unshift(nt);
   render();
-  // 滚动到表格顶部，高亮新行
-  setTimeout(()=>{
-    const el=document.getElementById('row-'+nt.id);
-    if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.style.background='#fffde7'; setTimeout(()=>{el.style.background='';},2000); }
-  },100);
+  setTimeout(() => { const r = document.getElementById('row-'+nt.id); if(r) r.scrollIntoView({behavior:'smooth',block:'center'}); }, 100);
 }
 
-function del(id){ if(!confirm('确定删除？'))return; tasks=tasks.filter(t=>t.id!==id); render(); }
-function edProc(id){ const t=tasks.find(x=>x.id===id); if(!t)return; const v=prompt('流程名称：',t.process); if(v&&v.trim()){t.process=v.trim();render();} }
-function resetDemo(){ if(!confirm('重置为演示数据？修改将丢失。'))return; tasks=JSON.parse(JSON.stringify(DEMO)); nid=tasks.length+1; Object.keys(pcol).forEach(k=>delete pcol[k]); selected.clear(); clearFilters(); render(); }
+// ===== 手动任务 =====
+function manualTasks() { return tasks.filter(t => t.taskType === 'manual'); }
 
-// ========== 电脑管理 ==========
-function openPcManager() {
-  document.getElementById('pcModalBg').classList.add('show');
-  renderPcList();
-}
-function closePcManager() { document.getElementById('pcModalBg').classList.remove('show'); }
-function renderPcList() {
-  const grp = {};
-  tasks.forEach(t => { if(!grp[t.pc])grp[t.pc]=0; grp[t.pc]++; });
-  document.getElementById('pcList').innerHTML = Object.keys(grp).sort().map(pc =>
-    '<div class="pc-row"><span>🖥 <b>'+esc(pc)+'</b> <span class="n">'+grp[pc]+' 个任务</span></span>'+
-    '<span style="display:flex;gap:4px;">'+
-    '<button class="btn" style="padding:3px 8px;font-size:0.7rem;" onclick="renamePc(\''+esc(pc)+'\')">✏ 重命名</button>'+
-    '<button class="btn red" style="padding:3px 8px;font-size:0.7rem;" onclick="deletePc(\''+esc(pc)+'\')">🗑</button>'+
-    '</span></div>'
-  ).join('') || '<div style="color:#ccc;padding:12px;">暂无电脑</div>';
-}
-function addPc() {
-  const name = document.getElementById('newPcName').value.trim();
-  if (!name) return;
-  if (tasks.some(t => t.pc === name)) { alert('电脑 "'+name+'" 已存在'); return; }
-  tasks.push({id:nid++, process:'新流程', pc:name, start:'09:00', end:'09:30', runtime:1800, status:'运行中'});
-  document.getElementById('newPcName').value = '';
-  render(); renderPcList();
-}
-function renamePc(oldName) {
-  const v = prompt('将 "'+oldName+'" 重命名为：', oldName);
-  if (!v || !v.trim() || v.trim() === oldName) return;
-  const newName = v.trim();
-  if (tasks.some(t => t.pc === newName)) { alert('电脑 "'+newName+'" 已存在'); return; }
-  tasks.forEach(t => { if (t.pc === oldName) t.pc = newName; });
-  render(); renderPcList();
-}
-function deletePc(pcName) {
-  const n = tasks.filter(t => t.pc === pcName).length;
-  if (!confirm('删除电脑 "'+pcName+'" 及全部 '+n+' 个任务？')) return;
-  tasks = tasks.filter(t => t.pc !== pcName);
-  // 重新分配颜色
-  Object.keys(pcol).forEach(k => delete pcol[k]);
-  render(); renderPcList();
+function addManualTask() {
+  const pcs = [...new Set(tasks.map(t => t.pc))];
+  const nt = {
+    id: nid++, scheduleUuid: '', robotUuid: '', robotName: '',
+    process: '手动任务', pc: pcs[0] || '电脑A',
+    start: '09:00', end: '09:30', runtime: 1800,
+    status: '已启用', runStatus: '', lastRun: '', runTimes: 0,
+    category: '', retryEnabled: false, maxRetry: 3, retryCount: 0, sourceType: '',
+    taskType: 'manual', triggerMethod: '手动', operationScope: ''
+  };
+  tasks.unshift(nt);
+  renderManual();
 }
 
-// ========== 批量操作 ==========
+function renderManual() {
+  const list = manualTasks();
+  const body = document.getElementById('manualBody');
+  if (list.length === 0) {
+    body.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:#ccc;">暂无手动任务 — 点击「＋ 添加任务」创建</td></tr>';
+    return;
+  }
+  body.innerHTML = list.map(t => `<tr>
+    <td><input type="checkbox" class="cb" onchange="toggleSel(${t.id})"${selected.has(t.id)?' checked':''}></td>
+    <td><input class="inp-cell" value="${esc(t.process||'')}" onchange="upd(${t.id},'process',this.value)" style="min-width:120px;font-weight:500;"></td>
+    <td><input class="inp-cell" value="${esc(t.pc||'')}" onchange="upd(${t.id},'pc',this.value)" style="width:90px;"></td>
+    <td><input class="inp-cell inp-time" type="time" value="${t.start||'09:00'}" onchange="upd(${t.id},'start',this.value)"></td>
+    <td><input class="inp-cell inp-time" type="time" value="${t.end||'09:05'}" onchange="upd(${t.id},'end',this.value)"></td>
+    <td><input class="inp-cell inp-runtime" type="number" value="${t.runtime||0}" onblur="upd(${t.id},'runtime',parseInt(this.value)||0)"></td>
+    <td><input class="inp-cell" value="${esc(t.triggerMethod||'')}" onchange="upd(${t.id},'triggerMethod',this.value)" placeholder="如:webhook" style="width:80px;"></td>
+    <td><input class="inp-cell" value="${esc(t.operationScope||'')}" onchange="upd(${t.id},'operationScope',this.value)" placeholder="如:全平台" style="width:80px;"></td>
+    <td><select class="inp-cell" onchange="upd(${t.id},'status',this.value)" style="width:70px;">
+      <option${t.status==='已启用'?' selected':''}>已启用</option>
+      <option${t.status==='已禁用'?' selected':''}>已禁用</option>
+    </select></td>
+    <td><input class="inp-cell inp-cat" list="catDatalist" value="${esc(t.category||'')}" onchange="upd(${t.id},'category',this.value)"></td>
+    <td><button class="btn btn-sm btn-danger" onclick="del(${t.id});renderManual()">🗑</button></td>
+  </tr>`).join('');
+  document.getElementById('selectAllM').checked = list.length > 0 && list.every(t => selected.has(t.id));
+}
+
+function toggleSelectAllManual() {
+  const list = manualTasks();
+  if (list.every(t => selected.has(t.id))) list.forEach(t => selected.delete(t.id));
+  else list.forEach(t => selected.add(t.id));
+  renderManual();
+  renderBatchBar();
+}
+
+function updManual(id, field, value) {
+  upd(id, field, value);
+  renderManual();
+}
+
+function del(id) {
+  if (!confirm('确定删除该任务？')) return;
+  tasks = tasks.filter(t => t.id !== id);
+  selected.delete(id);
+  render();
+}
+
+function renameProcess(id) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  const v = prompt('流程名称：', t.process);
+  if (v && v.trim()) { t.process = v.trim(); render(); }
+}
+
+// ============================================================
+// 影刀集成
+// ============================================================
+function syncYingdao() {
+  if (!apiAvailable) { alert('需要服务器模式才能同步影刀数据'); return; }
+  const statusEl = document.getElementById('ydStatus');
+  const btn = document.getElementById('btnSync');
+  statusEl.innerHTML = '<span style="color:#0891b2;">⏳ 正在从影刀同步数据...</span>';
+  btn.disabled = true;
+
+  fetch('/api/yingdao/sync', {method:'POST'})
+    .then(r => r.json())
+    .then(d => {
+      btn.disabled = false;
+      if (!d.success) {
+        statusEl.innerHTML = `<span style="color:#d44;">❌ 同步失败：${esc(d.message||'')}</span>`;
+        return;
+      }
+      statusEl.innerHTML = `<span style="color:#2da87a;">✅ ${d.message}</span> <span style="color:#888;margin-left:8px;">计划：${d.scheduleCount} | 运行记录：${d.runCount}</span>`;
+      lastSyncTime = new Date().toLocaleString('zh-CN');
+      document.getElementById('lastSyncTime').textContent = `上次同步：${lastSyncTime}`;
+      loadData().then(() => { selected.clear(); render(); refreshRunHistory(); });
+    })
+    .catch(e => {
+      btn.disabled = false;
+      statusEl.innerHTML = `<span style="color:#d44;">❌ 网络错误：${esc(e.message)}</span>`;
+    });
+}
+
+function startTask(id) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  if (!apiAvailable) { alert('需要服务器模式'); return; }
+
+  const statusEl = document.getElementById('ydStatus');
+  const row = document.getElementById('row-' + id);
+  const btn = row ? row.querySelector('.btn-primary') : null;
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+
+  statusEl.innerHTML = '<span style="color:#0891b2;">⏳ 正在启动：' + esc(t.process) + '...</span>';
+
+  fetch('/api/yingdao/start', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({scheduleUuid: t.scheduleUuid, robotUuid: t.robotUuid, pc: t.pc, process: t.process})
+  })
+    .then(r => r.json())
+    .then(d => {
+      if (btn) { btn.disabled = false; btn.textContent = '▶'; }
+      if (d.success) {
+        statusEl.innerHTML = '<span style="color:#2da87a;">✅ 已启动：' + esc(t.process) + '</span>';
+      } else {
+        statusEl.innerHTML = '<span style="color:#d44;">❌ 启动失败：' + esc(d.message||'') + '</span>';
+      }
+    })
+    .catch(e => {
+      if (btn) { btn.disabled = false; btn.textContent = '▶'; }
+      statusEl.innerHTML = '<span style="color:#d44;">❌ 网络错误</span>';
+    });
+}
+
+function refreshRunHistory() {
+  if (!apiAvailable) {
+    document.getElementById('historyBody').innerHTML = '<tr><td colspan="9" style="color:#ccc;text-align:center;padding:20px;">需要服务器模式查看运行记录</td></tr>';
+    document.getElementById('historyInfo').textContent = '';
+    return;
+  }
+  historyPage = 1;
+  loadRunHistory();
+}
+
+function loadMoreHistory() {
+  historyPage++;
+  loadRunHistory(true);
+}
+
+function loadRunHistory(append = false) {
+  const search = document.getElementById('fHistorySearch').value;
+  const status = document.getElementById('fHistoryStatus').value;
+  let url = `/api/yingdao/run-history?page=${historyPage}&per_page=${HISTORY_PER_PAGE}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+  if (status) url += `&status=${encodeURIComponent(status)}`;
+
+  fetch(url).then(r=>r.json()).then(d => {
+    if (!d.success) return;
+    document.getElementById('historyInfo').textContent = `共 ${d.total} 条 | 第 ${d.page}/${d.total_pages} 页`;
+    document.getElementById('btnLoadMore').style.display = historyPage < d.total_pages ? '' : 'none';
+
+    const rows = d.records.map(r => {
+      const srcLabel = {yingdao_callback:'影刀回调',manual_rerun:'手动重跑',manual_start:'手动启动',manual_report:'手动报告'}[r.source] || r.source;
+      return `<tr>
+        <td style="white-space:nowrap;font-size:0.73rem;">${iso2time(r.time)}</td>
+        <td>${srcLabel}</td>
+        <td>${esc(r.process||'')}</td>
+        <td>${esc(r.pc||'')}</td>
+        <td>${statusBadge(r.status)}</td>
+        <td style="white-space:nowrap;font-size:0.73rem;">${r.startTime&&r.endTime?(()=>{try{const s=new Date(r.startTime),e=new Date(r.endTime);const sec=Math.round((e-s)/1000);return sec>=3600?Math.floor(sec/3600)+'时'+Math.floor((sec%3600)/60)+'分':sec>=60?Math.floor(sec/60)+'分'+sec%60+'秒':sec+'秒'}catch(e){return'--'}})():r.startTime?'进行中':'--'}</td>
+        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.msg||'')}">${esc((r.msg||'').substring(0,40))}</td>
+        <td style="text-align:center;">${r.retryTriggered ? '<span class="badge badge-retry">是 (#'+r.retryCount+')</span>' : '—'}</td>
+        <td><button class="btn btn-sm btn-danger" onclick="deleteHistory('${esc(r.id)}')" style="padding:2px 6px;font-size:0.65rem;" title="删除">✕</button></td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('historyBody').innerHTML = append
+      ? document.getElementById('historyBody').innerHTML + rows
+      : rows || '<tr><td colspan="9" style="color:#ccc;text-align:center;padding:20px;">暂无运行记录</td></tr>';
+  }).catch(() => {
+    if (!append) document.getElementById('historyBody').innerHTML = '<tr><td colspan="9" style="color:#d44;text-align:center;padding:20px;">加载失败</td></tr>';
+  });
+}
+
+function deleteHistory(rid) {
+  if (!confirm('确定删除该条运行记录？')) return;
+  fetch('/api/yingdao/run-history/' + encodeURIComponent(rid), {method:'DELETE'})
+    .then(r => r.json())
+    .then(() => refreshRunHistory());
+}
+
+function clearHistory() {
+  if (!confirm('确定清空全部运行记录？此操作不可恢复！')) return;
+  fetch('/api/yingdao/run-history', {method:'DELETE'})
+    .then(r => r.json())
+    .then(() => refreshRunHistory());
+}
+
+function toggleRunHistory() {
+  const panel = document.getElementById('runHistoryPanel');
+  const toggle = document.getElementById('historyToggle');
+  if (panel.style.display === 'none') {
+    panel.style.display = '';
+    toggle.textContent = '▼';
+  } else {
+    panel.style.display = 'none';
+    toggle.textContent = '▶';
+  }
+}
+
+// ============================================================
+// 批量操作
+// ============================================================
 function batchSetStatus(st) {
   if (!st) return;
   tasks.forEach(t => { if (selected.has(t.id)) t.status = st; });
   selected.clear();
   render();
 }
-function batchSetRuntime() {
-  const v = prompt('批量设置运行时间（秒）：', '1800');
-  if (!v) return;
-  const rt = parseInt(v) || 0;
-  tasks.forEach(t => { if (selected.has(t.id)) { t.runtime = rt; t.end = m2t(t2m(t.start) + Math.ceil(rt/60)); } });
-  selected.clear();
+
+function batchSetRetry(enabled) {
+  tasks.forEach(t => { if (selected.has(t.id)) t.retryEnabled = enabled; });
   render();
 }
+
 function batchDelete() {
-  if (!confirm('确定删除选中的 '+selected.size+' 个任务？')) return;
+  if (!confirm(`确定删除选中的 ${selected.size} 个任务？`)) return;
   tasks = tasks.filter(t => !selected.has(t.id));
   selected.clear();
   render();
 }
 
-// ========== Webhook 触发 ==========
-function triggerWh(id) {
-  const t = tasks.find(x => x.id === id);
-  if (!t || !t.webhook) { alert('请先填写该任务的 Webhook URL'); return; }
-  if (!confirm('触发 Webhook？\n\n流程：'+t.process+'\n电脑：'+t.pc+'\nURL：'+t.webhook)) return;
-  if (apiAvailable) {
-    fetch('/api/webhook/trigger', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({id: t.id, url: t.webhook})
-    }).then(r => r.json()).then(d => { alert(d.message || '已触发'); });
-  } else {
-    // 本地直接触发
-    fetch(t.webhook, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({task_id: t.id, process: t.process, pc: t.pc, triggered_at: new Date().toISOString()})
-    }).then(r => {
-      alert(r.ok ? '✅ 触发成功 (HTTP '+r.status+')' : '❌ 触发失败 (HTTP '+r.status+')');
-    }).catch(e => { alert('❌ 请求失败: '+e.message); });
-  }
+// ============================================================
+// 电脑管理
+// ============================================================
+function openPcManager() {
+  const grp = {};
+  tasks.forEach(t => { if(!grp[t.pc]) grp[t.pc]=0; grp[t.pc]++; });
+  document.getElementById('pcModalBox').innerHTML = `
+    <h3>🖥 管理电脑</h3>
+    <div class="actions">
+      <input type="text" id="newPcName" placeholder="新电脑名称" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.8rem;">
+      <button class="btn btn-primary btn-sm" onclick="addPc()">＋ 添加</button>
+    </div>
+    ${Object.keys(grp).sort().map(pc =>
+      `<div class="row-item"><span>🖥 <b>${esc(pc)}</b> <span class="n">${grp[pc]} 个任务</span></span>
+       <span><button class="btn btn-sm" onclick="renamePcPrompt('${esc(pc)}')">✏ 重命名</button>
+       <button class="btn btn-sm btn-danger" onclick="deletePc('${esc(pc)}')">🗑</button></span></div>`
+    ).join('') || '<div style="color:#ccc;padding:12px;text-align:center;">暂无电脑</div>'}
+    <button class="btn" onclick="closePcManager()" style="margin-top:12px;width:100%;">关闭</button>
+  `;
+  document.getElementById('pcModalBg').classList.add('show');
 }
 
-function openWhLog() {
-  document.getElementById('whModalBg').classList.add('show');
-  if (apiAvailable) {
-    fetch('/api/webhook/logs').then(r => r.json()).then(d => {
-      const logs = d.logs || [];
-      document.getElementById('whLogs').innerHTML = logs.length === 0
-        ? '<div style="color:#ccc;padding:16px;text-align:center;">暂无触发记录</div>'
-        : logs.reverse().map(l => '<div style="padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:0.78rem;">'+
-          (l.success?'✅':'❌')+' 任务#'+l.task_id+' | '+new Date(l.time).toLocaleString('zh-CN')+
-          ' | HTTP '+l.status+'<br><span style="color:#888;font-size:0.7rem;">'+esc(l.url)+'</span>'+
-          (l.response?'<br><span style="color:#888;font-size:0.68rem;">'+esc(l.response.substring(0,80))+'</span>':'')+
-          '</div>').join('');
-    }).catch(() => {
-      document.getElementById('whLogs').innerHTML = '<div style="color:#ccc;padding:16px;text-align:center;">无法连接服务器</div>';
-    });
-  } else {
-    document.getElementById('whLogs').innerHTML = '<div style="color:#ccc;padding:16px;text-align:center;">本地模式，无服务器日志</div>';
-  }
-}
+function closePcManager() { document.getElementById('pcModalBg').classList.remove('show'); }
 
-function closeWhLog() { document.getElementById('whModalBg').classList.remove('show'); }
-
-// ========== 影刀同步 ==========
-let ydCache = {}; // 缓存同步结果 {process: {status, error, uuid, robotUuid, lastRun}}
-
-function syncYingdao() {
-  if (!apiAvailable) { alert('需要服务器模式才能同步影刀'); return; }
-  document.getElementById('ydStatus').innerHTML = '<span style="color:#0891b2;">⏳ 正在从影刀同步运行状态...</span>';
-  fetch('/api/yingdao/sync', {method:'POST'})
-    .then(r => r.json())
-    .then(d => {
-      if (!d.success) {
-        document.getElementById('ydStatus').innerHTML = '<span style="color:#d44;">❌ 同步失败：'+esc(d.message||'未知错误')+'</span>';
-        return;
-      }
-      const recs = d.records || [];
-      ydCache = {};
-      let errCount = 0, okCount = 0, autoRerunCount = 0;
-      recs.forEach(r => {
-        const local = tasks.find(t =>
-          t.process === r.process || t.process.includes(r.process) || r.process.includes(t.process)
-        );
-        r.localId = local ? local.id : null;
-        ydCache[r.process] = r;
-        if (r.status === 3 || r.status === '失败' || r.error) {
-          errCount++;
-          // 自动重跑已勾选的任务
-          if (local && local.autoRerun && r.uuid) {
-            autoRerunCount++;
-            fetch('/api/yingdao/rerun', {
-              method:'POST', headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({appUuid: r.uuid, robotUuid: r.robotUuid})
-            });
-          }
-        } else okCount++;
-      });
-      document.getElementById('ydStatus').innerHTML =
-        '<span style="color:#2da87a;">✅ 同步完成：'+recs.length+' 条</span> '+
-        '<span style="color:#e05560;">❌ '+errCount+' 失败</span> '+
-        (autoRerunCount>0?'<span style="color:#0891b2;">🔄 已自动重跑 '+autoRerunCount+' 个</span> ':'')+
-        '<span style="color:#888;">✅ '+okCount+' 正常</span> '+
-        (errCount>0?'<button class="btn" style="margin-left:8px;padding:3px 10px;font-size:0.7rem;" onclick="rerunAllFailed()">🔄 重跑全部失败</button>':'');
-      render();
-    }).catch(e => {
-      document.getElementById('ydStatus').innerHTML = '<span style="color:#d44;">❌ 网络错误</span>';
-    });
-}
-
-function rerunFailed(id) {
-  const rec = Object.values(ydCache).find(r => r.localId === id);
-  if (!rec || !rec.jobUuid) { alert('未找到可重跑的运行记录（需要 jobUuid）'); return; }
-  if (!confirm('重新运行：'+rec.process+'？')) return;
-  document.getElementById('ydStatus').innerHTML = '<span style="color:#0891b2;">⏳ 正在重跑...</span>';
-  fetch('/api/yingdao/rerun', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({jobUuid: rec.jobUuid})
-  }).then(r=>r.json()).then(d=>{
-    document.getElementById('ydStatus').innerHTML = d.success
-      ? '<span style="color:#2da87a;">✅ 已重跑：'+rec.process+'</span>'
-      : '<span style="color:#d44;">❌ 重跑失败：'+esc(d.message||'')+'</span>';
+function addPc() {
+  const inp = document.getElementById('newPcName');
+  const name = inp.value.trim();
+  if (!name) return;
+  if (tasks.some(t => t.pc === name)) { alert('该电脑已存在'); return; }
+  tasks.push({
+    id: nid++, scheduleUuid:'', robotUuid:'', robotName:'',
+    process:'新流程', pc:name, start:'09:00', end:'09:30', runtime:1800,
+    status:'已启用', runStatus:'', lastRun:'', runTimes:0,
+    category:'', retryEnabled:false, maxRetry:3, retryCount:0, sourceType:'',
+    taskType:'yingdao', triggerMethod:'', operationScope:''
   });
-}
-
-function rerunAllFailed() {
-  const failed = Object.values(ydCache).filter(r => r.jobUuid && (r.status==='fail'||r.status==='error'||r.status==='timeout'));
-  if (failed.length===0) { alert('没有可重跑的失败任务（需要 jobUuid 且状态为 fail/error/timeout）'); return; }
-  if (!confirm('确定重跑全部 '+failed.length+' 个失败任务？')) return;
-  let done=0;
-  document.getElementById('ydStatus').innerHTML = '<span style="color:#0891b2;">⏳ 正在重跑 '+failed.length+' 个...</span>';
-  failed.forEach(r => {
-    fetch('/api/yingdao/rerun', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({jobUuid: r.jobUuid})
-    }).then(()=>{ done++; document.getElementById('ydStatus').innerHTML='<span style="color:#0891b2;">⏳ 已重跑 '+done+'/'+failed.length+' 个</span>'; });
-  });
-}
-
-// 提示框
-function shTip(e,id){
-  const t=tasks.find(x=>x.id===id); if(!t)return;
-  const tip=document.getElementById('tip');
-  tip.innerHTML='<b>'+esc(t.process)+'</b><br>🖥 '+esc(t.pc)+'<br>🕐 '+t.start+' → '+t.end+'（'+(t2m(t.end)-t2m(t.start))+'分钟）<br>⏱ 运行时间：'+fm(t.runtime||0)+'<br>📌 '+t.status;
-  tip.classList.add('on');
-  let x=e.clientX+14,y=e.clientY+14;
-  if(x+300>innerWidth)x=e.clientX-300;
-  if(y+150>innerHeight)y=e.clientY-150;
-  tip.style.left=x+'px';tip.style.top=y+'px';
-}
-function hiTip(){ document.getElementById('tip').classList.remove('on'); }
-document.addEventListener('mousemove',e=>{
-  const tip=document.getElementById('tip');
-  if(tip.classList.contains('on')){ let x=e.clientX+14,y=e.clientY+14; if(x+300>innerWidth)x=e.clientX-300; if(y+150>innerHeight)y=e.clientY-150; tip.style.left=x+'px';tip.style.top=y+'px'; }
-});
-
-// 导入导出
-function exportData(){
-  const b=new Blob([JSON.stringify({tasks,time:new Date().toISOString()},null,2)],{type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='rpa-schedule.json'; a.click(); URL.revokeObjectURL(a.href);
-}
-function importData(e){
-  const f=e.target.files[0]; if(!f)return;
-  const r=new FileReader(); r.onload=ev=>{ try{ const d=JSON.parse(ev.target.result); if(d.tasks){tasks=d.tasks;nid=Math.max(...tasks.map(t=>t.id),0)+1;render();alert('导入 '+tasks.length+' 条');} }catch(err){alert('解析失败');} }; r.readAsText(f); e.target.value='';
-}
-
-document.addEventListener('keydown',e=>{ if(e.ctrlKey&&e.key==='n'){e.preventDefault();addTask();} if(e.ctrlKey&&e.key==='s'){e.preventDefault();exportData();} });
-
-// 启动
-loadData().then(() => {
   render();
-  document.getElementById('cbUrl').textContent = location.origin + '/api/yingdao/callback';
-});
+  openPcManager();
+}
 
+function renamePcPrompt(oldName) {
+  const newName = prompt(`重命名电脑 "${oldName}" 为：`, oldName);
+  if (newName && newName.trim() && newName.trim() !== oldName) {
+    tasks.forEach(t => { if (t.pc === oldName) t.pc = newName.trim(); });
+    render();
+    openPcManager();
+  }
+}
+
+function deletePc(pcName) {
+  const count = tasks.filter(t => t.pc === pcName).length;
+  if (!confirm(`确定删除电脑 "${pcName}" 及其 ${count} 个任务？`)) return;
+  tasks = tasks.filter(t => t.pc !== pcName);
+  render();
+  openPcManager();
+}
+
+// ============================================================
+// 分类管理
+// ============================================================
+function openCategoryManager() {
+  const grp = {};
+  tasks.forEach(t => { const c = t.category || '未分类'; grp[c] = (grp[c]||0)+1; });
+  document.getElementById('catModalBox').innerHTML = `
+    <h3>🏷 管理分类</h3>
+    <div class="actions">
+      <input type="text" id="newCatName" placeholder="新分类名称" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.8rem;">
+      <button class="btn btn-primary btn-sm" onclick="addCategory()">＋ 添加</button>
+    </div>
+    ${Object.entries(grp).sort((a,b)=>b[1]-a[1]).map(([k,v]) =>
+      `<div class="row-item"><span>🏷 <b>${esc(k)}</b> <span class="n">${v} 个任务</span></span>
+       <span><button class="btn btn-sm" onclick="renameCatPrompt('${esc(k)}')">✏ 重命名</button>
+       <button class="btn btn-sm btn-danger" onclick="deleteCategory('${esc(k)}')">🗑</button></span></div>`
+    ).join('')}
+    <button class="btn" onclick="closeCategoryManager()" style="margin-top:12px;width:100%;">关闭</button>
+  `;
+  document.getElementById('catModalBg').classList.add('show');
+}
+
+function closeCategoryManager() { document.getElementById('catModalBg').classList.remove('show'); }
+
+function addCategory() {
+  const inp = document.getElementById('newCatName');
+  const name = inp.value.trim();
+  if (!name) return;
+  const pcs = [...new Set(tasks.map(t => t.pc))];
+  tasks.unshift({
+    id: nid++, scheduleUuid:'', robotUuid:'', robotName:'',
+    process:'新流程', pc:pcs[0]||'电脑A', start:'09:00', end:'09:30', runtime:1800,
+    status:'已启用', runStatus:'', lastRun:'', runTimes:0,
+    category:name, retryEnabled:false, maxRetry:3, retryCount:0, sourceType:'',
+    taskType:'yingdao', triggerMethod:'', operationScope:''
+  });
+  render();
+  openCategoryManager();
+}
+
+function renameCatPrompt(oldName) {
+  const newName = prompt(`重命名分类 "${oldName}" 为：`, oldName);
+  if (newName && newName.trim() && newName.trim() !== oldName) {
+    tasks.forEach(t => { if ((t.category||'未分类') === oldName) t.category = newName.trim(); });
+    render();
+    openCategoryManager();
+  }
+}
+
+function deleteCategory(catName) {
+  const count = tasks.filter(t => (t.category||'未分类') === catName).length;
+  if (!confirm(`确定删除分类 "${catName}"？其 ${count} 个任务将变为"未分类"。`)) return;
+  tasks.forEach(t => { if ((t.category||'未分类') === catName) t.category = ''; });
+  render();
+  openCategoryManager();
+}
+
+// ============================================================
+// 导入导出
+// ============================================================
+function exportData() {
+  const blob = new Blob([JSON.stringify({tasks, nid, exportedAt: new Date().toISOString()}, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `rpa_tasks_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.tasks) { alert('无效的配置文件：缺少 tasks 字段'); return; }
+      tasks = data.tasks;
+      nid = data.nid || Math.max(...tasks.map(t=>t.id), 0) + 1;
+      selected.clear();
+      clearFilters();
+      render();
+      alert(`导入成功：${tasks.length} 条任务`);
+    } catch(err) { alert('文件解析失败：' + err.message); }
+  };
+  reader.readAsText(file, 'UTF-8');
+  e.target.value = '';
+}
+
+function resetAll() {
+  if (!confirm('确定重置所有数据？此操作不可恢复！')) return;
+  tasks = []; nid = 1; selected.clear();
+  clearFilters();
+  render();
+}
+
+// ============================================================
+// 缩放 & 提示
+// ============================================================
+function setZoom(v) {
+  zoom = parseInt(v);
+  document.getElementById('zoomSlider').value = zoom;
+  document.getElementById('zoomLabel').textContent = zoom + '×';
+  render();
+}
+function zoomIn() { if (zoom < 10) setZoom(zoom + 1); }
+function zoomOut() { if (zoom > 1) setZoom(zoom - 1); }
+
+function shTip(e, id) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  const tip = document.getElementById('tip');
+  tip.innerHTML = `<b>${esc(t.process||'')}</b><br>
+    🖥 ${esc(t.pc||'')} | ${t.start||'--'} - ${t.end||'--'} | ${fmDuration(t.runtime||0)}<br>
+    启用：${t.status==='已启用'?'✅':'❌'} | 运行：${t.runStatus||'未运行'} | 重试：${t.retryEnabled?'✅ (已重试'+t.retryCount+'/'+t.maxRetry+')':'❌'}<br>
+    ${t.scheduleUuid ? '📋 '+esc(t.scheduleUuid.slice(0,16))+'...' : '📋 未关联影刀计划'}`;
+  tip.classList.add('on');
+  tip.style.left = (e.clientX + 16) + 'px';
+  tip.style.top = (e.clientY - 80) + 'px';
+}
+
+function hiTip() { document.getElementById('tip').classList.remove('on'); }
+
+// ============================================================
+// 回调日志查看
+// ============================================================
 function copyCbUrl() {
   const url = document.getElementById('cbUrl').textContent;
-  navigator.clipboard.writeText(url).then(() => alert('回调地址已复制！\n\n将此地址填入影刀控制台 → 应用设置 → 运行回调'));
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = event.target;
+    btn.textContent = '✅ 已复制';
+    setTimeout(() => btn.textContent = '📋 复制', 1500);
+  }).catch(() => alert('复制失败，请手动复制'));
 }
 
 function viewCallbacks() {
   if (!apiAvailable) { alert('需要服务器模式'); return; }
   fetch('/api/yingdao/callbacks').then(r=>r.json()).then(d => {
     const logs = d.logs || [];
-    let html = '<h3>📡 影刀回调日志（最近 100 条）</h3>';
-    if (logs.length===0) html += '<div style="color:#ccc;padding:16px;">暂无回调记录</div>';
-    else html += logs.reverse().map(l => {
-      const b = l.body || {};
-      return '<div style="padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:0.78rem;">'+
-        '🕐 '+new Date(l.time).toLocaleString('zh-CN')+
-        ' | 状态：'+(b.status||b.code||'?')+
-        ' | <span style="font-size:0.7rem;color:#888;">'+esc(JSON.stringify(b).substring(0,150))+'</span>'+
-        '</div>';
-    }).join('');
-    const modal = document.createElement('div');
-    modal.className = 'modal-bg show';
-    modal.innerHTML = '<div class="modal-box">'+html+'<button class="btn" onclick="this.parentElement.parentElement.remove()" style="margin-top:12px;width:100%;">关闭</button></div>';
-    modal.onclick = e => { if(e.target===modal) modal.remove(); };
-    document.body.appendChild(modal);
-  }).catch(() => alert('获取失败'));
+    document.getElementById('cbLogModalBox').innerHTML = `
+      <h3>📋 原始回调日志（最近 ${logs.length} 条）
+        ${logs.length > 0 ? '<button class="btn btn-sm btn-danger" onclick="clearCallbacks()" style="margin-left:12px;">🗑 清空全部</button>' : ''}
+      </h3>
+      <div style="max-height:60vh;overflow-y:auto;">
+        ${logs.slice().reverse().map(l => `
+          <div style="margin-bottom:8px;padding:8px;background:#f8fafc;border-radius:6px;font-size:0.73rem;position:relative;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <b>${iso2time(l.time)}</b>
+              <button class="btn btn-sm btn-danger" onclick="deleteCallback('${esc(l.time)}')" style="padding:2px 6px;font-size:0.65rem;">✕</button>
+            </div>
+            <pre style="margin-top:4px;white-space:pre-wrap;font-size:0.7rem;color:#555;">${esc(JSON.stringify(l.body,null,2).substring(0,500))}</pre>
+            ${l.autoRerun ? '<div style="color:#e8a830;margin-top:4px;">🔄 自动重试: '+esc(JSON.stringify(l.autoRerun))+'</div>' : ''}
+          </div>
+        `).join('') || '<div style="color:#ccc;text-align:center;">暂无回调日志</div>'}
+      </div>
+      <button class="btn" onclick="closeCbLog()" style="margin-top:12px;width:100%;">关闭</button>
+    `;
+    document.getElementById('cbLogModalBg').classList.add('show');
+  });
 }
+
+function deleteCallback(timeId) {
+  if (!confirm('确定删除该条记录？')) return;
+  fetch('/api/yingdao/callbacks/' + encodeURIComponent(timeId), {method:'DELETE'})
+    .then(r => r.json())
+    .then(() => viewCallbacks());
+}
+
+function clearCallbacks() {
+  if (!confirm('确定清空全部回调日志？')) return;
+  fetch('/api/yingdao/callbacks', {method:'DELETE'})
+    .then(r => r.json())
+    .then(() => viewCallbacks());
+}
+
+function closeCbLog() { document.getElementById('cbLogModalBg').classList.remove('show'); }
+
+// ============================================================
+// 初始化
+// ============================================================
+loadData().then(() => {
+  render();
+  document.getElementById('cbUrl').textContent = location.origin + '/api/yingdao/callback';
+  if (apiAvailable) refreshRunHistory();
+});
+
+// 键盘快捷键
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'n') { e.preventDefault(); addTask(); }
+  if (e.ctrlKey && e.key === 's') { e.preventDefault(); exportData(); }
+});
 </script>
 </body>
 </html>

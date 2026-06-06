@@ -11,3 +11,5 @@ data/
 venv/
 .DS_Store
 Thumbs.db
+run_history.json
+callback_log.json
