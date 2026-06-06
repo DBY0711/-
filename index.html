@@ -336,6 +336,11 @@ select.inp-cell{cursor:pointer}
     <span class="card-actions">
       <button class="btn btn-sm" id="alertViewExc" style="background:#ffebee;color:#c62828;border-color:#ffcdd2;" onclick="setAlertView('异常')">⚠ 异常</button>
       <button class="btn btn-sm" id="alertViewOk" onclick="setAlertView('成功')">✅ 成功</button>
+      <select onchange="alertSort=this.value;loadAlerts()" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.73rem;font-family:inherit;">
+        <option value="time-desc">⏱ 时间倒序</option>
+        <option value="date-group">📅 按日期分组</option>
+        <option value="pc">🖥 按电脑排序</option>
+      </select>
       <button class="btn btn-sm" onclick="loadAlerts()">🔄 刷新</button>
     </span>
   </h2>
@@ -1204,6 +1209,8 @@ function hiTip() { document.getElementById('tip').classList.remove('on'); }
 // 异常提醒
 // ============================================================
 let alertView = '异常';
+let alertSort = 'time-desc';  // time-desc / pc / date-group
+
 function setAlertView(v) {
   alertView = v;
   document.getElementById('alertViewExc').style.background = v==='异常' ? '#ffebee' : '';
@@ -1216,18 +1223,29 @@ function loadAlerts() {
   fetch('/api/alerts?status=' + alertView)
     .then(r => r.json())
     .then(d => {
-      const alerts = d.alerts || [];
+      let alerts = d.alerts || [];
       const body = document.getElementById('alertsBody');
       if (alerts.length === 0) {
         body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#ccc;">暂无' + alertView + '记录</td></tr>';
         return;
       }
+      // 排序
+      if (alertSort === 'pc') alerts.sort((a,b) => (a.pc||'').localeCompare(b.pc||''));
+      else if (alertSort === 'date-group') alerts.sort((a,b) => (b.time||'').localeCompare(a.time||''));
+
+      let lastDate = '';
       body.innerHTML = alerts.map(a => {
         const runMode = a.retryType === 'auto' ? '<span style="color:#e65100;font-weight:600;">🤖 自动运行</span>'
-          : a.retryType === 'manual' ? '<span style="color:#1565c0;font-weight:600;">👆 手动运行</span>'
+          : (a.retryType === 'manual' || a.status === '成功') ? '<span style="color:#1565c0;font-weight:600;">👆 手动运行</span>'
           : '<span style="color:#888;">--</span>';
         const isExc = a.status === '异常';
-        return '<tr>\
+        const dateStr = (a.time||'').slice(0,10);
+        let dateRow = '';
+        if (alertSort === 'date-group' && dateStr !== lastDate) {
+          lastDate = dateStr;
+          dateRow = '<tr style="background:#f8fafc;"><td colspan="9" style="padding:6px 10px;font-weight:700;font-size:0.78rem;color:#5b6abf;">📅 ' + dateStr + '</td></tr>';
+        }
+        return dateRow + '<tr>\
         <td><input type="checkbox" class="cb" '+(a.checked?'checked':'')+' onchange="toggleAlertCheck(\''+esc(a.id)+'\',this.checked)"></td>\
         <td style="white-space:nowrap;font-size:0.73rem;">'+iso2time(a.time)+'</td>\
         <td><b>'+esc(a.process||'')+'</b></td>\
@@ -1237,9 +1255,10 @@ function loadAlerts() {
         <td>'+runMode+'</td>\
         <td><input class="inp-cell" value="'+esc(a.note||'')+'" onchange="updateAlertNote(\''+esc(a.id)+'\',this.value)" placeholder="备注" style="width:70px;font-size:0.7rem;"></td>\
         <td style="white-space:nowrap;">'+
-          (isExc ? '<button class="btn btn-sm btn-primary" onclick="retryAlert(\''+esc(a.id)+'\',\''+esc(a.process||'')+'\')" style="padding:2px 8px;font-size:0.65rem;margin-right:3px;" title="手动重跑">🔄</button>'+
-                   '<button class="btn btn-sm btn-success" onclick="markAlertDone(\''+esc(a.id)+'\')" style="padding:2px 6px;font-size:0.65rem;margin-right:3px;" title="标记已处理">✅</button>'
-                   : '')+
+          (isExc
+            ? '<button class="btn btn-sm btn-primary" onclick="retryAlert(\''+esc(a.id)+'\',\''+esc(a.process||'')+'\')" style="padding:2px 8px;font-size:0.65rem;margin-right:3px;" title="手动重跑">🔄</button>'+
+              '<button class="btn btn-sm btn-success" onclick="markAlertDone(\''+esc(a.id)+'\')" style="padding:2px 6px;font-size:0.65rem;margin-right:3px;" title="标记已处理">✅</button>'
+            : '<button class="btn btn-sm" onclick="undoAlert(\''+esc(a.id)+'\')" style="padding:2px 6px;font-size:0.65rem;margin-right:3px;color:#e65100;" title="撤销回异常">↩ 撤销</button>')+
           '<button class="btn btn-sm btn-danger" onclick="delAlert(\''+esc(a.id)+'\')" style="padding:2px 6px;font-size:0.65rem;">✕</button></td>\
       </tr>';
       }).join('');
@@ -1253,7 +1272,13 @@ function updateAlertNote(id, note) {
   fetch('/api/alerts/' + id, {method:'PUT', headers: apiHeaders, body: JSON.stringify({note})});
 }
 function markAlertDone(id) {
-  fetch('/api/alerts/' + id, {method:'PUT', headers: apiHeaders, body: JSON.stringify({status:'成功',checked:true})})
+  fetch('/api/alerts/' + id, {method:'PUT', headers: apiHeaders,
+    body: JSON.stringify({status:'成功', checked:true, retryType:'manual'})})
+    .then(() => loadAlerts());
+}
+function undoAlert(id) {
+  fetch('/api/alerts/' + id, {method:'PUT', headers: apiHeaders,
+    body: JSON.stringify({status:'异常', checked:false})})
     .then(() => loadAlerts());
 }
 
