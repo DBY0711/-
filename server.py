@@ -329,7 +329,6 @@ def _auto_time(schedule_uuid, index=0):
         h = (index * 37 + 480) % 1440  # 从 08:00 开始分布
     m = (h // 10) * 10  # 对齐到 10 分钟
     return f"{m // 60:02d}:{m % 60:02d}"
-    return str(status).lower() in ("error", "fail", "timeout", "cancel")
 
 
 # ============================================================
@@ -748,11 +747,9 @@ def api_yingdao_callback():
 
     if is_fail and matched:
         _daily_reset(matched)
-        # 更新任务状态
         matched["status"] = _map_status(status) if matched.get("taskType") != "manual" else matched["status"]
         matched["lastRun"] = end_time or datetime.now().isoformat()
 
-        # 只有勾选自动重试 && 未超过最大次数才重试
         if matched.get("retryEnabled") and matched.get("retryCount", 0) < matched.get("maxRetry", 3):
             retry_result = _yd_api("/oapi/dispatch/v2/job/retry", {"jobUuid": job_uuid})
             if retry_result["success"]:
@@ -771,13 +768,33 @@ def api_yingdao_callback():
 
         save_run_history(records)
 
-    elif is_success and matched:
+    elif is_success:
         # 成功 → 重置重试计数
-        matched["retryCount"] = 0
-        matched["retryDate"] = _today()
-        matched["status"] = "已启用"
-        matched["lastRun"] = end_time or datetime.now().isoformat()
+        if matched:
+            matched["retryCount"] = 0
+            matched["retryDate"] = _today()
+            matched["status"] = "已启用"
+            matched["lastRun"] = end_time or datetime.now().isoformat()
         save_run_history(records)
+
+        # 自动将同一流程的「异常」告警转为「成功」
+        alerts = load_alerts()
+        alerts_updated = False
+        nl = robot_name.lower().strip()
+        for a in alerts:
+            if (a.get("process") or "").lower().strip() == nl and a.get("status") == "异常":
+                a["status"] = "成功"
+                a["checked"] = True
+                if a.get("retryType") != "manual":
+                    a["retryType"] = "auto"
+                if not a.get("note"):
+                    a["note"] = f"运行成功自动标记（{_today()}）"
+                alerts_updated = True
+        if alerts_updated:
+            save_alerts(alerts)
+
+        # 添加成功记录供回溯
+        _add_alert(robot_name, pc, "运行成功", "yingdao_callback", "成功", "auto")
 
     save_tasks(local_data)
     return jsonify({"success": True, "message": "回调已接收"})
