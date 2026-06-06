@@ -1297,10 +1297,10 @@ function retryAlert(id, process) {
     body: JSON.stringify({scheduleUuid: task.scheduleUuid, robotUuid: task.robotUuid, pc: task.pc, process: task.process})
   }).then(r => r.json()).then(d => {
     if (d.success) {
-      statusEl.innerHTML = '<span style="color:#2da87a;">✅ 已启动：' + esc(task.process) + '</span>';
-      // 标记告警为手动运行+已处理
+      statusEl.innerHTML = '<span style="color:#2da87a;">✅ 已启动：' + esc(task.process) + '（等待运行结果...）</span>';
+      // 不立即标成功，等回调确认实际结果后才自动更新状态
       fetch('/api/alerts/' + id, {method:'PUT', headers: apiHeaders,
-        body: JSON.stringify({retryType:'manual', status:'成功', checked:true, note:'手动重跑成功 ' + new Date().toLocaleString('zh-CN')})
+        body: JSON.stringify({retryType:'manual', note:'手动重试已启动 ' + new Date().toLocaleString('zh-CN')})
       }).then(() => loadAlerts());
     } else {
       statusEl.innerHTML = '<span style="color:#d44;">❌ 启动失败：' + esc(d.message||'') + '</span>';
