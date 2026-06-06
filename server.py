@@ -660,6 +660,121 @@ def api_run_history():
     })
 
 
+# ---------- 外部失败报告 ----------
+@app.route("/api/error-report", methods=["POST"])
+def api_error_report():
+    """接收外部失败报告 → 匹配任务 → 判断是否重试"""
+    body = request.get_json(force=True, silent=True) or {}
+    process = body.get("process", "").strip()
+    msg = body.get("msg", body.get("error", ""))
+    pc = body.get("pc", "").strip()
+    job_uuid = body.get("jobUuid", "")
+
+    if not process:
+        return jsonify({"success": False, "message": "缺少 process 参数"}), 400
+
+    # 匹配本地任务
+    local_data = load_tasks()
+    tasks = local_data.get("tasks", [])
+    matched = None
+    nl = process.lower()
+    # 精确匹配 process
+    for t in tasks:
+        if (t.get("process") or "").lower().strip() == nl:
+            matched = t
+            break
+    # 模糊匹配
+    if not matched:
+        for t in tasks:
+            if nl in (t.get("process") or "").lower():
+                matched = t
+                break
+
+    # 创建运行记录
+    record = {
+        "id": str(uuid.uuid4()),
+        "time": datetime.now().isoformat(),
+        "source": "manual_report",
+        "dataType": "job",
+        "scheduleUuid": matched.get("scheduleUuid", "") if matched else "",
+        "taskUuid": "",
+        "jobUuid": job_uuid,
+        "process": process,
+        "pc": pc or (matched.get("pc", "") if matched else ""),
+        "status": "错误",
+        "msg": msg,
+        "startTime": datetime.now().isoformat(),
+        "endTime": "",
+        "retryTriggered": False,
+        "retryCount": 0,
+        "retryJobUuid": "",
+    }
+    records = load_run_history()
+    records.append(record)
+
+    if not matched:
+        save_run_history(records)
+        return jsonify({"success": True, "message": f"未匹配到任务: {process}", "matched": False, "retried": False})
+
+    # 判断是否重试
+    if matched.get("retryEnabled") and matched.get("retryCount", 0) < matched.get("maxRetry", 3):
+        if job_uuid:
+            # 有 jobUuid → 重跑
+            retry_result = _yd_api("/oapi/dispatch/v2/job/retry", {"jobUuid": job_uuid})
+        else:
+            # 无 jobUuid → 启动新任务
+            sched_uuid = matched.get("scheduleUuid", "")
+            robot_uuid = matched.get("robotUuid", "")
+            task_pc = matched.get("pc", "")
+            if sched_uuid:
+                detail = _yd_api("/oapi/dispatch/v2/schedule/detail", {"scheduleUuid": sched_uuid})
+                if detail["success"]:
+                    d = detail["data"].get("data", detail["data"])
+                    robots = d.get("robotList", [])
+                    clients = d.get("robotClientList", [])
+                    if robots:
+                        robot_uuid = robots[0].get("robotUuid", "") or robot_uuid
+                    if clients:
+                        task_pc = clients[0].get("robotClientName", "") or task_pc
+            if robot_uuid:
+                req_body = {"robotUuid": robot_uuid}
+                if task_pc:
+                    req_body["accountName"] = task_pc
+                retry_result = _yd_api("/oapi/dispatch/v2/job/start", req_body)
+            else:
+                retry_result = {"success": False, "message": "缺少 robotUuid"}
+
+        if retry_result["success"]:
+            matched["retryCount"] = matched.get("retryCount", 0) + 1
+            record["retryTriggered"] = True
+            record["retryCount"] = matched["retryCount"]
+            retry_data = retry_result.get("data", {})
+            if isinstance(retry_data, dict):
+                record["retryJobUuid"] = retry_data.get("jobUuid", "")
+            save_tasks(local_data)
+            save_run_history(records)
+            return jsonify({
+                "success": True,
+                "message": f"已触发重试: {process}（第{matched['retryCount']}次）",
+                "matched": True, "retried": True, "retryCount": matched["retryCount"]
+            })
+        else:
+            save_run_history(records)
+            return jsonify({
+                "success": False,
+                "message": f"重试失败: {retry_result.get('message', '')}",
+                "matched": True, "retried": False
+            })
+
+    save_run_history(records)
+    reason = "未启用重试" if not matched.get("retryEnabled") else f"已达上限({matched.get('retryCount',0)}/{matched.get('maxRetry',3)})"
+    return jsonify({
+        "success": True,
+        "message": f"已记录但跳过重试: {reason}",
+        "matched": True, "retried": False
+    })
+
+
 # ---------- 影刀：回调日志 ----------
 @app.route("/api/yingdao/callbacks", methods=["GET"])
 def api_yingdao_callbacks():
