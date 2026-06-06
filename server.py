@@ -283,6 +283,16 @@ def _daily_reset(task):
         task["retryDate"] = _today()
 
 
+def _has_running(process_name):
+    """检查指定流程是否已有正在运行中的任务"""
+    records = load_run_history()
+    nl = process_name.lower().strip()
+    for r in records:
+        if (r.get("process") or "").lower().strip() == nl and r.get("status") == "进行中":
+            return True
+    return False
+
+
 def _map_status(yd_status):
     """影刀状态 → 中文"""
     m = {
@@ -570,6 +580,11 @@ def api_yingdao_start():
     if not robot_uuid:
         return jsonify({"success": False, "message": "缺少 robotUuid，且 schedule/detail 也未返回"}), 400
 
+    process = body.get("process", "")
+    # 防止重复启动：同流程有运行中任务时拒绝
+    if process and _has_running(process):
+        return jsonify({"success": False, "message": f"「{process}」已有任务正在运行中，请等待完成后再试"}), 409
+
     # 用 job/start 启动
     req_body = {"robotUuid": robot_uuid}
     if pc:
@@ -774,6 +789,13 @@ def api_yingdao_callback():
         record["retryType"] = record.get("retryType") or ""
 
         if matched.get("retryEnabled") and matched.get("retryCount", 0) < matched.get("maxRetry", 3):
+            # 检查是否有正在运行中的重试，防止并发重试
+            if _has_running(matched.get("process", robot_name)):
+                print(f"[回调] 跳过自动重试: {matched['process']} — 已有重试正在运行中")
+                record["msg"] = (record.get("msg") or "") + "（已有重试运行中，跳过本次自动重试）"
+                save_run_history(records)
+                save_tasks(local_data)
+                return jsonify({"success": True, "message": "回调已接收（跳过重试：已有运行中任务）"})
             retry_result = _yd_api("/oapi/dispatch/v2/job/retry", {"jobUuid": job_uuid})
             if retry_result["success"]:
                 matched["retryCount"] = matched.get("retryCount", 0) + 1
@@ -1047,6 +1069,11 @@ def api_error_report():
     _daily_reset(matched)
     # 判断是否重试
     if matched.get("retryEnabled") and matched.get("retryCount", 0) < matched.get("maxRetry", 3):
+        # 防止重复重试
+        if _has_running(matched.get("process", process)):
+            save_run_history(records)
+            return jsonify({"success": True, "message": f"跳过重试：{process} 已有任务正在运行中", "matched": True, "retried": False, "reason": "running"})
+
         if job_uuid:
             # 有 jobUuid → 重跑
             retry_result = _yd_api("/oapi/dispatch/v2/job/retry", {"jobUuid": job_uuid})
