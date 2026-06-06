@@ -894,19 +894,15 @@ def _add_alert(process, pc, msg, source, status="异常", retry_type=""):
 @_check_token
 def api_error_report():
     """接收外部失败报告 → 匹配任务 → 判断是否重试"""
-    content_type = request.content_type or ""
-    body = {}
-
-    raw_text = ""
-    if "json" in content_type:
-        body = request.get_json(force=True, silent=True) or {}
-        # 数据可能在 body.body.message（回调包装格式）或 body.message
-        inner = body.get("body", {})
-        raw_text = inner.get("message", "") or body.get("message", "")
-    else:
+    # 1. 尝试解析 JSON body
+    body = request.get_json(force=True, silent=True) or {}
+    # 2. 提取嵌套数据
+    inner = body.get("body", {})
+    raw_text = inner.get("message", "") or body.get("message", "")
+    # 3. 如果不是 JSON，尝试文本解析
+    if not body and not raw_text:
         raw_text = request.get_data(as_text=True) or ""
 
-    # 如果 body 中没有直接字段，从文本解析
     process = body.get("process", "").strip()
     msg = body.get("msg", body.get("error", ""))
     pc = body.get("pc", "").strip()
