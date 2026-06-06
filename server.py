@@ -579,6 +579,7 @@ def api_yingdao_start():
     # 记录运行历史
     now = datetime.now().isoformat()
     process = body.get("process", "")
+    job_uuid_new = result.get("data", {}).get("data", {}).get("jobUuid", "")
     record = {
         "id": str(uuid.uuid4()),
         "time": now,
@@ -586,16 +587,17 @@ def api_yingdao_start():
         "dataType": "job",
         "scheduleUuid": schedule_uuid,
         "taskUuid": "",
-        "jobUuid": result.get("data", {}).get("data", {}).get("jobUuid", ""),
+        "jobUuid": job_uuid_new,
         "process": process,
         "pc": pc,
-        "status": "started",
+        "status": "进行中",
         "msg": "手动启动",
         "startTime": now,
         "endTime": "",
         "retryTriggered": False,
         "retryCount": 0,
         "retryJobUuid": "",
+        "retryType": "manual",
     }
     records = load_run_history()
     records.append(record)
@@ -625,6 +627,7 @@ def api_yingdao_rerun():
     result = _yd_api("/oapi/dispatch/v2/job/retry", {"jobUuid": job_uuid})
 
     # 记录手动重跑
+    retry_job = result.get("data", {}).get("data", {}) if result["success"] else {}
     record = {
         "id": str(uuid.uuid4()),
         "time": datetime.now().isoformat(),
@@ -632,16 +635,17 @@ def api_yingdao_rerun():
         "dataType": "job",
         "scheduleUuid": body.get("scheduleUuid", ""),
         "taskUuid": "",
-        "jobUuid": job_uuid,
+        "jobUuid": retry_job.get("jobUuid", ""),
         "process": body.get("process", ""),
         "pc": body.get("pc", ""),
-        "status": "retry_queued" if result["success"] else "retry_failed",
+        "status": "进行中" if result["success"] else "retry_failed",
         "msg": "手动触发重跑" if result["success"] else f"重跑失败: {result.get('message', '')}",
-        "startTime": "",
+        "startTime": datetime.now().isoformat() if result["success"] else "",
         "endTime": "",
         "retryTriggered": False,
         "retryCount": 0,
         "retryJobUuid": "",
+        "retryType": "manual",
     }
     records = load_run_history()
     records.append(record)
@@ -682,27 +686,45 @@ def api_yingdao_callback():
     if not job_uuid:
         return jsonify({"success": False, "message": "回调缺少 jobUuid"}), 400
 
-    # ---- 创建运行历史记录 ----
-    record = {
-        "id": str(uuid.uuid4()),
-        "time": datetime.now().isoformat(),
-        "source": "yingdao_callback",
-        "dataType": job.get("dataType", "job"),
-        "scheduleUuid": "",
-        "taskUuid": "",
-        "jobUuid": job_uuid,
-        "process": robot_name,
-        "pc": pc,
-        "status": _map_status(status),
-        "msg": msg,
-        "startTime": str(start_time) if start_time else "",
-        "endTime": str(end_time) if end_time else "",
-        "retryTriggered": False,
-        "retryCount": 0,
-        "retryJobUuid": "",
-    }
+    # ---- 查找或创建运行历史记录（同 jobUuid 合并更新） ----
     records = load_run_history()
-    records.append(record)
+    existing_record = None
+    for r in records:
+        if r.get("jobUuid") == job_uuid:
+            existing_record = r
+            break
+
+    if existing_record:
+        # 更新已有记录（生命周期追踪）
+        existing_record["status"] = _map_status(status)
+        existing_record["msg"] = msg or existing_record.get("msg", "")
+        existing_record["startTime"] = str(start_time) if start_time else existing_record.get("startTime", "")
+        existing_record["endTime"] = str(end_time) if end_time else ""
+        existing_record["time"] = datetime.now().isoformat()
+        record = existing_record
+        print(f"[回调] 更新已有记录: {record['process']} jobUuid={job_uuid} → {record['status']}")
+    else:
+        # 新建运行历史记录
+        record = {
+            "id": str(uuid.uuid4()),
+            "time": datetime.now().isoformat(),
+            "source": "yingdao_callback",
+            "dataType": job.get("dataType", "job"),
+            "scheduleUuid": "",
+            "taskUuid": "",
+            "jobUuid": job_uuid,
+            "process": robot_name,
+            "pc": pc,
+            "status": _map_status(status),
+            "msg": msg,
+            "startTime": str(start_time) if start_time else "",
+            "endTime": str(end_time) if end_time else "",
+            "retryTriggered": False,
+            "retryCount": 0,
+            "retryJobUuid": "",
+            "retryType": "",
+        }
+        records.append(record)
     save_run_history(records)
 
     # ---- 任务匹配与重试逻辑 ----
@@ -749,6 +771,7 @@ def api_yingdao_callback():
         _daily_reset(matched)
         matched["status"] = _map_status(status) if matched.get("taskType") != "manual" else matched["status"]
         matched["lastRun"] = end_time or datetime.now().isoformat()
+        record["retryType"] = record.get("retryType") or ""
 
         if matched.get("retryEnabled") and matched.get("retryCount", 0) < matched.get("maxRetry", 3):
             retry_result = _yd_api("/oapi/dispatch/v2/job/retry", {"jobUuid": job_uuid})
@@ -759,6 +782,27 @@ def api_yingdao_callback():
                 retry_data = retry_result.get("data", {})
                 if isinstance(retry_data, dict):
                     record["retryJobUuid"] = retry_data.get("jobUuid", "")
+                    # 创建自动重试记录，方便追踪
+                    retry_record = {
+                        "id": str(uuid.uuid4()),
+                        "time": datetime.now().isoformat(),
+                        "source": "auto_retry",
+                        "dataType": "job",
+                        "scheduleUuid": matched.get("scheduleUuid", ""),
+                        "taskUuid": "",
+                        "jobUuid": retry_data.get("jobUuid", ""),
+                        "process": matched.get("process", robot_name),
+                        "pc": pc,
+                        "status": "进行中",
+                        "msg": f"自动重试（第{matched['retryCount']}次）",
+                        "startTime": datetime.now().isoformat(),
+                        "endTime": "",
+                        "retryTriggered": False,
+                        "retryCount": matched["retryCount"],
+                        "retryJobUuid": "",
+                        "retryType": "auto",
+                    }
+                    records.append(retry_record)
                 print(f"[回调] 自动重试: {matched['process']} jobUuid={job_uuid} 第{matched['retryCount']}次")
             else:
                 print(f"[回调] 重试失败: {matched['process']} — {retry_result.get('message', '')}")
@@ -775,6 +819,7 @@ def api_yingdao_callback():
             matched["retryDate"] = _today()
             matched["status"] = "已启用"
             matched["lastRun"] = end_time or datetime.now().isoformat()
+        record["retryType"] = record.get("retryType") or ""
         save_run_history(records)
 
         # 自动将同一流程的「异常」告警转为「成功」
@@ -808,11 +853,17 @@ def api_run_history():
     per_page = request.args.get("per_page", 50, type=int)
     status_filter = request.args.get("status", "").strip()
     search = request.args.get("search", "").strip()
+    retry_type = request.args.get("retryType", "").strip()
+    source = request.args.get("source", "").strip()
 
     all_records = load_run_history()
 
     if status_filter:
         all_records = [r for r in all_records if r.get("status") == status_filter]
+    if retry_type:
+        all_records = [r for r in all_records if r.get("retryType") == retry_type]
+    if source:
+        all_records = [r for r in all_records if r.get("source") == source]
     if search:
         s = search.lower()
         all_records = [r for r in all_records
@@ -975,6 +1026,7 @@ def api_error_report():
         "retryTriggered": False,
         "retryCount": 0,
         "retryJobUuid": "",
+        "retryType": "manual",
     }
     records = load_run_history()
     records.append(record)

@@ -383,14 +383,30 @@ select.inp-cell{cursor:pointer}
         <option value="超时">超时</option>
         <option value="已停止">已停止</option>
         <option value="已取消">已取消</option>
+        <option value="进行中">进行中</option>
         <option value="等待中">等待中</option>
+        <option value="retry_failed">重试失败</option>
       </select>
+      <select id="fHistorySource" onchange="refreshRunHistory()">
+        <option value="">全部来源</option>
+        <option value="yingdao_callback">影刀回调</option>
+        <option value="manual_start">手动启动</option>
+        <option value="manual_rerun">手动重跑</option>
+        <option value="auto_retry">自动重试</option>
+        <option value="manual_report">错误报告</option>
+      </select>
+      <select id="fHistoryRetryType" onchange="refreshRunHistory()">
+        <option value="">全部重试类型</option>
+        <option value="auto">🤖 自动重试</option>
+        <option value="manual">👆 手动重试</option>
+      </select>
+      <button class="btn btn-sm" onclick="refreshRunHistory()">🔄 刷新</button>
       <button class="btn btn-sm" onclick="loadMoreHistory()" id="btnLoadMore" style="display:none">加载更多...</button>
     </div>
     <div class="tbl-wrap">
       <table id="historyTable">
         <thead><tr>
-          <th>时间</th><th>来源</th><th>流程</th><th>电脑</th><th>状态</th><th>运行时长</th><th>消息</th><th>自动重试</th><th>操作</th>
+          <th>时间</th><th>来源</th><th>流程</th><th>电脑</th><th>状态</th><th>运行时长</th><th>重试方式</th><th>消息</th><th>操作</th>
         </tr></thead>
         <tbody id="historyBody"></tbody>
       </table>
@@ -943,26 +959,40 @@ function loadMoreHistory() {
 function loadRunHistory(append = false) {
   const search = document.getElementById('fHistorySearch').value;
   const status = document.getElementById('fHistoryStatus').value;
+  const source = document.getElementById('fHistorySource').value;
+  const retryType = document.getElementById('fHistoryRetryType').value;
   let url = `/api/yingdao/run-history?page=${historyPage}&per_page=${HISTORY_PER_PAGE}`;
   if (search) url += `&search=${encodeURIComponent(search)}`;
   if (status) url += `&status=${encodeURIComponent(status)}`;
+  if (source) url += `&source=${encodeURIComponent(source)}`;
+  if (retryType) url += `&retryType=${encodeURIComponent(retryType)}`;
 
   fetch(url).then(r=>r.json()).then(d => {
     if (!d.success) return;
     document.getElementById('historyInfo').textContent = `共 ${d.total} 条 | 第 ${d.page}/${d.total_pages} 页`;
     document.getElementById('btnLoadMore').style.display = historyPage < d.total_pages ? '' : 'none';
 
+    const srcLabelMap = {yingdao_callback:'📡 影刀回调',manual_rerun:'👆 手动重跑',manual_start:'👆 手动启动',manual_report:'📝 错误报告',auto_retry:'🤖 自动重试'};
     const rows = d.records.map(r => {
-      const srcLabel = {yingdao_callback:'影刀回调',manual_rerun:'手动重跑',manual_start:'手动启动',manual_report:'手动报告'}[r.source] || r.source;
+      const srcLabel = srcLabelMap[r.source] || r.source;
+      // 重试方式标记
+      let retryTypeHtml = '—';
+      if (r.retryType === 'auto') {
+        retryTypeHtml = '<span class="badge badge-retry">🤖 自动 #' + (r.retryCount||0) + '</span>';
+      } else if (r.retryType === 'manual') {
+        retryTypeHtml = '<span style="color:#1565c0;font-size:0.73rem;">👆 手动</span>';
+      } else if (r.retryTriggered) {
+        retryTypeHtml = '<span class="badge badge-retry">🔄 重试 #' + (r.retryCount||0) + '</span>';
+      }
       return `<tr>
         <td style="white-space:nowrap;font-size:0.73rem;">${iso2time(r.time)}</td>
-        <td>${srcLabel}</td>
-        <td>${esc(r.process||'')}</td>
+        <td style="font-size:0.78rem;">${srcLabel}</td>
+        <td><b>${esc(r.process||'')}</b></td>
         <td>${esc(r.pc||'')}</td>
         <td>${statusBadge(r.status)}</td>
         <td style="white-space:nowrap;font-size:0.73rem;">${r.startTime&&r.endTime?(()=>{try{const s=new Date(r.startTime),e=new Date(r.endTime);const sec=Math.round((e-s)/1000);return sec>=3600?Math.floor(sec/3600)+'时'+Math.floor((sec%3600)/60)+'分':sec>=60?Math.floor(sec/60)+'分'+sec%60+'秒':sec+'秒'}catch(e){return'--'}})():r.startTime?'进行中':'--'}</td>
-        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.msg||'')}">${esc((r.msg||'').substring(0,40))}</td>
-        <td style="text-align:center;">${r.retryTriggered ? '<span class="badge badge-retry">是 (#'+r.retryCount+')</span>' : '—'}</td>
+        <td style="text-align:center;">${retryTypeHtml}</td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.msg||'')}">${esc((r.msg||'').substring(0,40))}</td>
         <td><button class="btn btn-sm btn-danger" onclick="deleteHistory('${esc(r.id)}')" style="padding:2px 6px;font-size:0.65rem;" title="删除">✕</button></td>
       </tr>`;
     }).join('');
