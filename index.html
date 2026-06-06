@@ -217,6 +217,7 @@ select.inp-cell{cursor:pointer}
 <div class="tab-nav">
   <button class="active" onclick="switchTab('yingdao')">📊 影刀任务</button>
   <button onclick="switchTab('manual')">📝 手动任务</button>
+  <button onclick="switchTab('alerts')">📢 异常提醒</button>
   <button onclick="switchTab('history')">📜 运行记录</button>
 </div>
 
@@ -327,6 +328,35 @@ select.inp-cell{cursor:pointer}
 </div>
 </div><!-- /tab-manual -->
 
+<!-- ===== TAB: 异常提醒 ===== -->
+<div class="tab-panel" id="tab-alerts">
+<div class="card">
+  <h2>📢 异常提醒
+    <span class="card-actions">
+      <button class="btn btn-sm" id="alertViewExc" style="background:#ffebee;color:#c62828;border-color:#ffcdd2;" onclick="setAlertView('异常')">⚠ 异常</button>
+      <button class="btn btn-sm" id="alertViewOk" onclick="setAlertView('成功')">✅ 成功</button>
+      <button class="btn btn-sm" onclick="loadAlerts()">🔄 刷新</button>
+    </span>
+  </h2>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th style="width:28px">☑</th>
+        <th>时间</th>
+        <th>流程名称</th>
+        <th>电脑</th>
+        <th>状态</th>
+        <th>错误信息</th>
+        <th>来源</th>
+        <th>备注</th>
+        <th>操作</th>
+      </tr></thead>
+      <tbody id="alertsBody"></tbody>
+    </table>
+  </div>
+</div>
+</div><!-- /tab-alerts -->
+
 <!-- ===== TAB: 运行记录 ===== -->
 <div class="tab-panel" id="tab-history">
 
@@ -424,13 +454,14 @@ let currentTab = 'yingdao';
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.tab-nav button').forEach((b,i) => {
-    b.classList.toggle('active', ['yingdao','manual','history'][i] === tab);
+    b.classList.toggle('active', ['yingdao','manual','alerts','history'][i] === tab);
   });
   document.querySelectorAll('.tab-panel').forEach(p => {
     p.classList.toggle('active', p.id === 'tab-' + tab);
   });
   if (tab === 'history') refreshRunHistory();
   if (tab === 'manual') renderManual();
+  if (tab === 'alerts') loadAlerts();
 }
 
 // ============================================================
@@ -1167,6 +1198,52 @@ function shTip(e, id) {
 }
 
 function hiTip() { document.getElementById('tip').classList.remove('on'); }
+
+// ============================================================
+// 异常提醒
+// ============================================================
+let alertView = '异常';
+function setAlertView(v) {
+  alertView = v;
+  document.getElementById('alertViewExc').style.background = v==='异常' ? '#ffebee' : '';
+  document.getElementById('alertViewOk').style.background = v==='成功' ? '#e8f5e9' : '';
+  loadAlerts();
+}
+
+function loadAlerts() {
+  if (!apiAvailable) return;
+  fetch('/api/alerts?status=' + alertView)
+    .then(r => r.json())
+    .then(d => {
+      const alerts = d.alerts || [];
+      const body = document.getElementById('alertsBody');
+      if (alerts.length === 0) {
+        body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#ccc;">暂无' + alertView + '记录</td></tr>';
+        return;
+      }
+      body.innerHTML = alerts.map(a => '<tr>\
+        <td><input type="checkbox" class="cb" '+(a.checked?'checked':'')+' onchange="toggleAlertCheck(\''+esc(a.id)+'\',this.checked)"></td>\
+        <td style="white-space:nowrap;font-size:0.73rem;">'+iso2time(a.time)+'</td>\
+        <td><b>'+esc(a.process||'')+'</b></td>\
+        <td>'+esc(a.pc||'')+'</td>\
+        <td>'+statusBadge(a.status)+'</td>\
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+esc(a.msg||'')+'">'+esc((a.msg||'').substring(0,60))+'</td>\
+        <td style="font-size:0.7rem;color:#888;">'+(a.source==='yingdao_callback'?'影刀回调':a.source==='manual_report'?'手动报告':a.source||'')+'</td>\
+        <td><input class="inp-cell" value="'+esc(a.note||'')+'" onchange="updateAlertNote(\''+esc(a.id)+'\',this.value)" placeholder="备注" style="width:80px;font-size:0.7rem;"></td>\
+        <td><button class="btn btn-sm btn-danger" onclick="delAlert(\''+esc(a.id)+'\')" style="padding:2px 6px;font-size:0.65rem;">✕</button></td>\
+      </tr>').join('');
+    });
+}
+
+function toggleAlertCheck(id, checked) {
+  fetch('/api/alerts/' + id, {method:'PUT', headers: apiHeaders, body: JSON.stringify({checked})});
+}
+function updateAlertNote(id, note) {
+  fetch('/api/alerts/' + id, {method:'PUT', headers: apiHeaders, body: JSON.stringify({note})});
+}
+function delAlert(id) {
+  fetch('/api/alerts/' + id, {method:'DELETE', headers: apiHeaders}).then(() => loadAlerts());
+}
 
 // ============================================================
 // 回调日志查看

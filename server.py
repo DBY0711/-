@@ -729,6 +729,9 @@ def api_yingdao_callback():
     is_fail = str(status).lower() in ("error", "fail", "timeout", "cancel")
     is_success = str(status).lower() == "finish"
 
+    if is_fail:
+        _add_alert(robot_name, pc, msg, "yingdao_callback", "异常")
+
     if is_fail and matched:
         _daily_reset(matched)
         # 更新任务状态
@@ -803,6 +806,72 @@ def api_run_history():
     })
 
 
+# ---------- 异常告警记录 ----------
+ALERTS_FILE = "alerts.json"
+
+
+def load_alerts():
+    return _read_json(ALERTS_FILE, [])
+
+
+def save_alerts(alerts):
+    _write_json(ALERTS_FILE, alerts[-500:])
+
+
+@app.route("/api/alerts", methods=["GET"])
+@_login_required
+def api_get_alerts():
+    status = request.args.get("status", "")
+    alerts = load_alerts()
+    if status:
+        alerts = [a for a in alerts if a.get("status") == status]
+    return jsonify({"success": True, "alerts": alerts[::-1]})  # 最新在前
+
+
+@app.route("/api/alerts/<alert_id>", methods=["PUT"])
+@_login_required
+def api_update_alert(alert_id):
+    body = request.get_json(force=True, silent=True) or {}
+    alerts = load_alerts()
+    for a in alerts:
+        if a.get("id") == alert_id:
+            if "checked" in body:
+                a["checked"] = body["checked"]
+            if "note" in body:
+                a["note"] = body["note"]
+            if "status" in body:
+                a["status"] = body["status"]
+            save_alerts(alerts)
+            return jsonify({"success": True})
+    return jsonify({"success": False, "message": "未找到"}), 404
+
+
+@app.route("/api/alerts/<alert_id>", methods=["DELETE"])
+@_login_required
+def api_delete_alert(alert_id):
+    alerts = load_alerts()
+    alerts = [a for a in alerts if a.get("id") != alert_id]
+    save_alerts(alerts)
+    return jsonify({"success": True})
+
+
+def _add_alert(process, pc, msg, source, status="异常"):
+    """自动添加告警记录（由回调/error-report触发）"""
+    alerts = load_alerts()
+    alerts.append({
+        "id": str(uuid.uuid4()),
+        "time": datetime.now().isoformat(),
+        "process": process,
+        "pc": pc,
+        "status": status,
+        "msg": msg[:300] if msg else "",
+        "source": source,
+        "checked": False,
+        "note": "",
+    })
+    save_alerts(alerts)
+
+
 # ---------- 外部失败报告 ----------
 @app.route("/api/error-report", methods=["POST"])
 @_check_token
@@ -853,6 +922,9 @@ def api_error_report():
             if nl in (t.get("process") or "").lower():
                 matched = t
                 break
+
+    # 自动告警
+    _add_alert(process, pc or (matched.get("pc", "") if matched else ""), msg, "manual_report", "异常")
 
     # 创建运行记录
     record = {
