@@ -1259,21 +1259,28 @@ function markAlertDone(id) {
 
 function retryAlert(id, process) {
   const task = tasks.find(t => (t.process||'').toLowerCase() === (process||'').toLowerCase());
-  if (!task) { alert('未匹配到任务: ' + process); return; }
+  if (!task) { alert('未匹配到任务: ' + process + '（请先在影刀任务中同步）'); return; }
   if (!apiAvailable) { alert('需要服务器模式'); return; }
+  if (!task.scheduleUuid && !task.robotUuid) { alert('该任务缺少 scheduleUuid 或 robotUuid，无法启动'); return; }
 
   const statusEl = document.getElementById('ydStatus');
   statusEl.innerHTML = '<span style="color:#0891b2;">⏳ 手动重试：' + esc(process) + '...</span>';
 
-  fetch('/api/error-report', {
+  // 调用启动接口，实际运行任务
+  fetch('/api/yingdao/start', {
     method:'POST', headers: apiHeaders,
-    body: JSON.stringify({process: process, pc: task.pc, msg: '手动重试', retryType: 'manual'})
+    body: JSON.stringify({scheduleUuid: task.scheduleUuid, robotUuid: task.robotUuid, pc: task.pc, process: task.process})
   }).then(r => r.json()).then(d => {
-    statusEl.innerHTML = d.success
-      ? '<span style="color:#2da87a;">✅ ' + esc(d.message) + '</span>'
-      : '<span style="color:#d44;">❌ ' + esc(d.message) + '</span>';
-    loadAlerts();
-  });
+    if (d.success) {
+      statusEl.innerHTML = '<span style="color:#2da87a;">✅ 已启动：' + esc(task.process) + '</span>';
+      // 标记告警为手动运行+已处理
+      fetch('/api/alerts/' + id, {method:'PUT', headers: apiHeaders,
+        body: JSON.stringify({retryType:'manual', status:'成功', checked:true, note:'手动重跑成功 ' + new Date().toLocaleString('zh-CN')})
+      }).then(() => loadAlerts());
+    } else {
+      statusEl.innerHTML = '<span style="color:#d44;">❌ 启动失败：' + esc(d.message||'') + '</span>';
+    }
+  }).catch(e => { statusEl.innerHTML = '<span style="color:#d44;">❌ 网络错误</span>'; });
 }
 
 function delAlert(id) {

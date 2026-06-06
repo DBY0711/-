@@ -602,6 +602,15 @@ def api_yingdao_start():
     records.append(record)
     save_run_history(records)
 
+    # 标记对应告警为手动重试
+    if process:
+        alerts = load_alerts()
+        for a in alerts:
+            if a.get("process") == process and a.get("status") == "异常":
+                a["retryType"] = "manual"
+                save_alerts(alerts)
+                break
+
     return jsonify(result)
 
 
@@ -846,6 +855,8 @@ def api_update_alert(alert_id):
                 a["note"] = body["note"]
             if "status" in body:
                 a["status"] = body["status"]
+            if "retryType" in body:
+                a["retryType"] = body["retryType"]
             save_alerts(alerts)
             return jsonify({"success": True})
     return jsonify({"success": False, "message": "未找到"}), 404
