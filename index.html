@@ -676,7 +676,7 @@ function renderGantt(filtered) {
       const isError = ['错误','超时','已取消'].includes(task.runStatus||'');
       const isManual = task.taskType === 'manual';
       const extraClass = (isError ? ' status-error' : '') + (task.retryEnabled ? ' retry-enabled' : '') + (isManual ? ' manual-task' : '');
-      html += `<div class="gantt-bar${extraClass}" style="left:${lp}%;width:${Math.max(wp,0.2)}%;background:${c};"
+      html += `<div class="gantt-bar${extraClass}" style="left:${lp}%;width:${Math.max(wp,0.04)}%;background:${c};"
         onmouseenter="shTip(event,${task.id})" onmouseleave="hiTip()"
         ondblclick="renameProcess(${task.id})"
         title="${esc(task.process||'')} | ${task.start||'--'} - ${task.end||'--'} | ${fmDuration(rt)} | ${task.status||''}">`;
