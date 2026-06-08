@@ -540,6 +540,12 @@ function saveData() {
   localStorage.setItem('rpa_tasks_v2', payload);
 }
 
+let _saveTimer = null;
+function debounceSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(saveData, 300);
+}
+
 // ============================================================
 // 筛选与排序
 // ============================================================
@@ -632,13 +638,21 @@ function renderGantt(filtered) {
   const ganttData = filtered.filter(t => t.status === '已启用' && t.pc);
   const grp = {}; ganttData.forEach(t => { if(!grp[t.pc]) grp[t.pc]=[]; grp[t.pc].push(t); });
   const plist = Object.keys(grp).sort();
-  const zw = 100 * zoom;
-  const slotsPerHr = zoom <= 2 ? 1 : 2;
+  // 基础宽度：zoom=1 时 24小时 ≈ 950px，zoom 越大列越宽但比例不变
+  const baseWidth = 950 * zoom;
+  const slotsPerHr = zoom <= 2 ? 1 : zoom <= 5 ? 2 : 4;
+  const totalCols = 24 * slotsPerHr;
 
-  let html = `<div class="gantt-head" style="min-width:${zoom*950}px;">`;
+  let html = `<div class="gantt-head" style="min-width:${baseWidth}px;">`;
   for (let h = 0; h < 24; h++) {
-    html += `<span>${String(h).padStart(2,'0')}:00</span>`;
-    if (slotsPerHr === 2) html += `<span style="font-size:0.55rem;">${String(h).padStart(2,'0')}:30</span>`;
+    // 每列宽度按 zoom 比例，但用 px 不用 flex
+    const colW = (baseWidth - 150) / totalCols;
+    html += `<span style="flex:none;width:${colW * slotsPerHr}px;">${String(h).padStart(2,'0')}:00</span>`;
+    if (slotsPerHr >= 2) {
+      for (let s = 1; s < slotsPerHr; s++) {
+        html += `<span style="flex:none;width:${colW}px;font-size:0.55rem;">${String(h).padStart(2,'0')}:${String(Math.floor(s*60/slotsPerHr)).padStart(2,'0')}</span>`;
+      }
+    }
   }
   html += '</div>';
 
@@ -648,15 +662,16 @@ function renderGantt(filtered) {
 
   plist.forEach((pcName, i) => {
     const items = grp[pcName].sort((a,b) => t2m(a.start) - t2m(b.start));
-    html += `<div class="gantt-row" style="min-width:${zoom*950}px;">`;
+    html += `<div class="gantt-row" style="min-width:${baseWidth}px;">`;
     html += `<div class="gantt-label"><span class="dot" style="background:${PC_COLORS[i%PC_COLORS.length]};"></span>${esc(pcName)} <small style="color:#999;font-weight:400;">${items.length}个</small></div>`;
     html += `<div class="gantt-track">`;
 
     items.forEach(task => {
       const s = t2m(task.start || '00:00');
-      const lp = (s / 1440) * zw;
+      // 百分比相对于24小时，不随 zoom 变化
+      const lp = (s / 1440) * 100;
       const rt = task.runtime || 0;
-      const wp = (rt / 86400) * zw;
+      const wp = (rt / 86400) * 100;
       const c = pcColor(task.process || '');
       const isError = ['错误','超时','已取消'].includes(task.runStatus||'');
       const isManual = task.taskType === 'manual';
@@ -805,6 +820,7 @@ function upd(id, field, value) {
   }
   render();
   if (currentTab === 'manual') renderManual();
+  debounceSave();
 }
 
 function addTask() {
